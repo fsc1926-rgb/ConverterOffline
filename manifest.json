@@ -1,11 +1,11 @@
 {
-  "id": "/converter-offline/",
-  "name": "ConverterOffline — Studio PDF",
+  "name": "ConverterOffline Studio PDF",
   "short_name": "ConverterPDF",
   "description": "Studio PDF 100% Offline: Converti foto in PDF, unisci, estrai pagine, comprimi e firma documenti.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
   "icons": [
@@ -13,7 +13,7 @@
       "src": "https://placehold.co/192x192/2563eb/ffffff.png?text=PDF",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "https://placehold.co/512x512/2563eb/ffffff.png?text=PDF",
