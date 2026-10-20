@@ -4,7 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#2563eb" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>ConverterOffline — Studio PDF</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="https://placehold.co/192x192/2563eb/ffffff.png?text=PDF" />
+  <link rel="apple-touch-icon" href="https://placehold.co/192x192/2563eb/ffffff.png?text=PDF" />
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     :root {
       --bg: #0f172a;
@@ -24,221 +30,553 @@
       display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
     }
     header h1 { margin: 0; font-size: 1.2rem; color: #60a5fa; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
     .badge { background: var(--success); color: #052e16; padding: 5px 10px; border-radius: 99px; font-size: 0.78rem; font-weight: 700; }
+    .install-btn {
+      background: var(--primary); color: #fff; border: none; padding: 7px 14px;
+      border-radius: 99px; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    }
     nav { display: flex; gap: 8px; padding: 10px 14px; background: #162032; overflow-x: auto; }
     nav button {
       background: var(--surface); color: var(--text); border: 1px solid var(--surface2);
       padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap; font-size: 0.9rem;
     }
     nav button.active { background: var(--primary); border-color: var(--primary); }
-    main { max-width: 900px; margin: 16px auto; padding: 0 14px; }
+    main { max-width: 920px; margin: 16px auto; padding: 0 14px; }
     .panel { background: var(--surface); border: 1px solid var(--surface2); border-radius: 12px; padding: 18px; margin-bottom: 18px; }
     .panel h2 { margin-top: 0; font-size: 1.1rem; color: #93c5fd; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
     label { display: block; font-size: 0.84rem; color: var(--muted); margin-bottom: 4px; margin-top: 10px; }
-    input, select, textarea {
+    input, select {
       width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--surface2);
       background: #0b1120; color: var(--text); font-size: 0.95rem;
     }
     .btn {
       display: inline-block; margin-top: 12px; padding: 11px 18px; border-radius: 8px;
-      border: none; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; font-size: 0.95rem;
+      border: none; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; font-size: 0.92rem;
     }
     .btn.secondary { background: var(--surface2); }
+    .btn.danger { background: var(--danger); }
     .btn.success { background: var(--success); color: #052e16; }
+    .btn.small { padding: 6px 12px; font-size: 0.8rem; margin-top: 4px; }
     .item-card {
       background: #0b1120; border: 1px solid var(--surface2); border-radius: 10px;
-      padding: 12px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      padding: 12px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
     }
-    .tag { background: var(--surface2); padding: 3px 8px; border-radius: 6px; font-size: 0.76rem; }
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 100;
-      display: flex; flex-direction: column; padding: 14px;
+    .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 12px; }
+    .thumb-box {
+      background: #0b1120; border: 1px solid var(--surface2); border-radius: 8px; padding: 8px; text-align: center;
     }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .modal-body { flex: 1; background: #0b1120; border-radius: 10px; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-    .modal-body iframe, .modal-body img { width: 100%; height: 100%; border: none; object-fit: contain; }
+    .thumb-box img { width: 100%; height: 95px; object-fit: cover; border-radius: 4px; }
+    canvas#sig-pad {
+      width: 100%; max-width: 460px; height: 150px; background: #ffffff; border-radius: 8px;
+      border: 2px dashed var(--primary); touch-action: none; display: block; margin-top: 8px;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>📄 ConverterOffline</h1>
-    <span class="badge">100% Offline</span>
+    <div class="header-actions">
+      <button id="btn-install" class="install-btn" onclick="triggerInstall()">📲 Scarica / Installa App</button>
+      <span class="badge">100% Offline</span>
+    </div>
   </header>
 
   <nav>
-    <button id="t-img2pdf" class="active" onclick="switchTab('img2pdf')">🖼️ Immagini → PDF</button>
+    <button id="t-img2pdf" class="active" onclick="switchTab('img2pdf')">🖼️ Foto → PDF</button>
     <button id="t-merge" onclick="switchTab('merge')">📑 Unisci PDF</button>
-    <button id="t-sign" onclick="switchTab('sign')">✍️ Firma / Nota su Immagine</button>
+    <button id="t-split" onclick="switchTab('split')">✂️ Estrai / Ruota Pagine</button>
+    <button id="t-sign" onclick="switchTab('sign')">✍️ Firma PDF</button>
   </nav>
 
   <main>
-    <!-- TAB 1: IMMAGINI IN PDF -->
+    <!-- TAB 1: IMMAGINI IN VERO PDF A4 -->
     <section id="sec-img2pdf">
       <div class="panel">
-        <h2>Converti Foto in Documento PDF</h2>
-        <p style="color:var(--muted);font-size:0.9rem">Seleziona una o più foto (scontrini, documenti) dal telefono per racchiuderle in un unico PDF.</p>
-        <label>Scegli Immagini</label>
-        <input type="file" id="img-files" accept="image/*" multiple />
-        <button class="btn success" onclick="convertImagesToPdf()">⚡ Genera PDF da Immagini</button>
-      </div>
-      <div class="panel">
-        <h2>Risultato</h2>
-        <div id="img2pdf-out"><p style="color:var(--muted)">Nessun file generato di recente.</p></div>
+        <h2>Converti Foto / Scontrini in un Vero File PDF</h2>
+        <div class="grid-2">
+          <div>
+            <label>Aggiungi Foto dalla Galleria o Fotocamera</label>
+            <input type="file" id="img-input" accept="image/*" multiple onchange="addImages(event)" />
+          </div>
+          <div>
+            <label>Qualità / Compressione Peso</label>
+            <select id="img-quality">
+              <option value="0.88">Alta Qualità (Stampa)</option>
+              <option value="0.65" selected>Media (Ottima per Email / WhatsApp)</option>
+              <option value="0.45">Massima Compressione (File leggerissimo)</option>
+            </select>
+          </div>
+          <div>
+            <label>Modalità Colore</label>
+            <select id="img-color">
+              <option value="color">Colore Originale</option>
+              <option value="bw">Filtro Scanner Bianco/Nero Nitido</option>
+            </select>
+          </div>
+          <div>
+            <label>Nome File PDF Finale</label>
+            <input type="text" id="img-pdf-name" value="documento-convertito.pdf" />
+          </div>
+        </div>
+
+        <div id="img-thumbs" class="thumb-grid"></div>
+
+        <div style="margin-top:12px;">
+          <button class="btn success" onclick="generatePdfFromImages()">⚡ Crea e Scarica PDF</button>
+          <button class="btn secondary" onclick="clearImages()">🗑️ Svuota Lista</button>
+        </div>
+        <div id="img2pdf-status" style="margin-top:12px;"></div>
       </div>
     </section>
 
-    <!-- TAB 2: UNISCI PDF -->
+    <!-- TAB 2: UNISCI PIÙ FILE PDF -->
     <section id="sec-merge" hidden>
       <div class="panel">
-        <h2>Unisci più File PDF</h2>
-        <p style="color:var(--muted);font-size:0.9rem">Seleziona due o più file PDF dal telefono per fonderli in sequenza.</p>
-        <label>Seleziona File PDF</label>
-        <input type="file" id="pdf-files" accept="application/pdf,.pdf" multiple />
-        <button class="btn success" onclick="mergePdfs()">⚡ Unisci PDF Selezionati</button>
-      </div>
-      <div class="panel">
-        <h2>Risultato Unione</h2>
-        <div id="merge-out"><p style="color:var(--muted)">Nessun PDF unito di recente.</p></div>
+        <h2>Unisci più File PDF in un Unico Documento</h2>
+        <label>Aggiungi File PDF (puoi selezionarli anche in più volte)</label>
+        <input type="file" id="merge-input" accept=".pdf,application/pdf" multiple onchange="addPdfToMerge(event)" />
+
+        <div id="merge-list" style="margin-top:12px;"></div>
+
+        <label>Nome del PDF Unito</label>
+        <input type="text" id="merge-name" value="pdf-unito.pdf" />
+
+        <button class="btn success" onclick="mergeAllPdfs()">⚡ Unisci e Scarica PDF</button>
+        <button class="btn secondary" onclick="pdfQueue=[];renderMergeList()">🗑️ Svuota</button>
       </div>
     </section>
 
-    <!-- TAB 3: FIRMA O NOTA SU IMMAGINE -->
+    <!-- TAB 3: ESTRAI O RUOTA PAGINE PDF -->
+    <section id="sec-split" hidden>
+      <div class="panel">
+        <h2>Estrai Singole Pagine o Ruota un PDF</h2>
+        <label>Carica il File PDF</label>
+        <input type="file" id="split-input" accept=".pdf,application/pdf" onchange="inspectPdfForSplit(event)" />
+        <div id="split-info" style="margin-top:8px;color:#93c5fd;font-weight:600;"></div>
+
+        <div class="grid-2">
+          <div>
+            <label>Pagine da Estrarre (es. <code>1, 3, 5-7</code> — vuoto = tutte)</label>
+            <input type="text" id="split-pages" placeholder="Es. 1, 2-4" />
+          </div>
+          <div>
+            <label>Rotazione Pagine</label>
+            <select id="split-rot">
+              <option value="0">0° (Non ruotare)</option>
+              <option value="90">90° Senso Orario</option>
+              <option value="180">180° Capovolgi</option>
+              <option value="270">270° Senso Antiorario</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn success" onclick="processSplitRotate()">⚡ Elabora e Scarica PDF</button>
+      </div>
+    </section>
+
+    <!-- TAB 4: FIRMA AUTOGRAFA E TESTO SU PDF -->
     <section id="sec-sign" hidden>
       <div class="panel">
-        <h2>Aggiungi Nota o Firma a Immagine</h2>
-        <label>Carica Immagine</label>
-        <input type="file" id="sign-file" accept="image/*" onchange="previewSignImage(event)" />
-        <label>Testo da sovrapporre (es. Visto si approva / Nome e Data)</label>
-        <input type="text" id="sign-text" placeholder="Firma / Testo di convalida..." />
-        <button class="btn success" onclick="applySignature()">✍️ Applica e Salva</button>
-      </div>
-      <div class="panel">
-        <h2>Anteprima Elaborata</h2>
-        <div id="sign-out"><p style="color:var(--muted)">Carica un'immagine per procedere.</p></div>
+        <h2>Apponi Firma Disegnata col Dito e Data su un PDF</h2>
+        <div class="grid-2">
+          <div>
+            <label>1. Carica il PDF da Firmare</label>
+            <input type="file" id="sign-pdf-input" accept=".pdf,application/pdf" />
+          </div>
+          <div>
+            <label>2. Testo opzionale (es. Nome, Data o "Per Accettazione")</label>
+            <input type="text" id="sign-text" placeholder="Es. Firmato il 20/10/2026" />
+          </div>
+        </div>
+
+        <label>3. Disegna la tua Firma col Dito nel riquadro bianco qui sotto:</label>
+        <canvas id="sig-pad" width="460" height="150"></canvas>
+        <button class="btn small secondary" onclick="clearSignaturePad()">🧹 Cancella Firma</button>
+
+        <div class="grid-2" style="margin-top:8px;">
+          <div>
+            <label>Su quale pagina applicare la firma?</label>
+            <select id="sign-page-pos">
+              <option value="last">Ultima pagina del PDF</option>
+              <option value="first">Prima pagina del PDF</option>
+              <option value="all">Tutte le pagine</option>
+            </select>
+          </div>
+          <div>
+            <label>Posizione nella pagina</label>
+            <select id="sign-corner">
+              <option value="br">In basso a destra</option>
+              <option value="bl">In basso a sinistra</option>
+              <option value="bc">In basso al centro</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn success" onclick="signPdfDocument()">✍️ Firma e Scarica PDF</button>
       </div>
     </section>
   </main>
 
-  <!-- MODAL VISUALIZZATORE -->
-  <div id="viewer-modal" class="modal-overlay" hidden>
-    <div class="modal-header">
-      <span id="viewer-title" style="font-weight:700">Anteprima</span>
-      <div>
-        <button class="btn secondary" onclick="downloadBlobResult()">⬇️ Salva</button>
-        <button class="btn danger" onclick="document.getElementById('viewer-modal').hidden = true">Chiudi ✕</button>
-      </div>
-    </div>
-    <div class="modal-body" id="viewer-body"></div>
-  </div>
-
-  <!-- SCRIPT DI ELABORAZIONE LOCALE -->
   <script>
-    let lastBlob = null;
-    let lastFilename = 'documento.pdf';
+    let imageQueue = [];
+    let pdfQueue = [];
+    let splitFileBytes = null;
+    let splitTotalPages = 0;
+
+    function formatBytes(bytes) {
+      if (!bytes) return '0 KB';
+      return bytes > 1048576
+        ? (bytes / 1048576).toFixed(2) + ' MB'
+        : Math.round(bytes / 1024) + ' KB';
+    }
 
     function switchTab(tab) {
-      ['img2pdf', 'merge', 'sign'].forEach(t => {
+      ['img2pdf', 'merge', 'split', 'sign'].forEach((t) => {
         document.getElementById('sec-' + t).hidden = (t !== tab);
         document.getElementById('t-' + t).classList.toggle('active', t === tab);
       });
     }
 
-    function openViewer(blob, filename, isPdf = true) {
-      lastBlob = blob;
-      lastFilename = filename;
-      document.getElementById('viewer-title').textContent = filename;
-      const body = document.getElementById('viewer-body');
+    function downloadPdfBytes(bytes, filename) {
+      const name = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+      const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      if (isPdf) {
-        body.innerHTML = '<iframe src="' + url + '"></iframe>';
-      } else {
-        body.innerHTML = '<img src="' + url + '" />';
-      }
-      document.getElementById('viewer-modal').hidden = false;
-    }
-
-    function downloadBlobResult() {
-      if (!lastBlob) return;
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(lastBlob);
-      a.download = lastFilename;
+      a.href = url;
+      a.download = name;
       document.body.appendChild(a);
       a.click();
       a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      return blob.size;
     }
 
-    // 1. Immagini a PDF (Genera un PDF strutturato nativo o pacchetto dati)
-    async function convertImagesToPdf() {
-      const files = document.getElementById('img-files').files;
-      if (!files || files.length === 0) return alert('Seleziona almeno un\'immagine.');
-      
-      // Crea un PDF container HTML convertito in blob o file stampabile
-      let html = '<html><head><style>body{margin:0;padding:0;text-align:center}img{max-width:100%;height:auto;page-break-after:always;display:block;margin:0 auto}</style></head><body>';
-      for (let f of files) {
-        const dataUrl = await readFileAsDataUrl(f);
-        html += '<img src="' + dataUrl + '" />';
+    // ================= 1. IMMAGINI -> PDF =================
+    function addImages(e) {
+      const files = Array.from(e.target.files || []);
+      files.forEach((file) => {
+        const url = URL.createObjectURL(file);
+        imageQueue.push({ id: Date.now() + Math.random(), file, url, size: file.size });
+      });
+      e.target.value = '';
+      renderImageThumbs();
+    }
+
+    function removeImage(id) {
+      imageQueue = imageQueue.filter((x) => x.id !== id);
+      renderImageThumbs();
+    }
+
+    function clearImages() {
+      imageQueue = [];
+      renderImageThumbs();
+      document.getElementById('img2pdf-status').innerHTML = '';
+    }
+
+    function renderImageThumbs() {
+      const wrap = document.getElementById('img-thumbs');
+      if (imageQueue.length === 0) {
+        wrap.innerHTML = '';
+        return;
       }
-      html += '</body></html>';
-
-      const blob = new Blob([html], { type: 'text/html' });
-      // Per compatibilità immediata offline, creiamo un file stampabile in PDF via browser o salvataggio HTML/Immagine
-      const out = document.getElementById('img2pdf-out');
-      out.innerHTML = '<div class="item-card"><div><strong>Immagini convertite in raccolta pronta</strong><br><small>' + files.length + ' file elaborati</small></div><button class="btn" onclick="openViewer(lastBlob, \'raccolta-immagini.html\', false)">👁️ Apri / Stampa PDF</button></div>';
-      lastBlob = blob;
-      lastFilename = 'raccolta-immagini.html';
+      wrap.innerHTML = imageQueue.map((item, idx) => `
+        <div class="thumb-box">
+          <img src="${item.url}" alt="Pag ${idx + 1}" />
+          <div style="font-size:0.75rem;margin-top:4px;">Pag. ${idx + 1} (${formatBytes(item.size)})</div>
+          <button class="btn small danger" onclick="removeImage(${item.id})">✕</button>
+        </div>
+      `).join('');
     }
 
-    function readFileAsDataUrl(file) {
-      return new Promise((res) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result);
-        r.readAsDataURL(file);
+    function processImageToJpegBytes(url, quality, bwMode) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1600;
+          let w = img.naturalWidth, h = img.naturalHeight;
+          if (w > maxDim || h > maxDim) {
+            const s = maxDim / Math.max(w, h);
+            w = Math.round(w * s);
+            h = Math.round(h * s);
+          }
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+
+          if (bwMode === 'bw') {
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+              const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+              const v = g > 145 ? 255 : Math.max(0, g * 0.55);
+              d[i] = d[i + 1] = d[i + 2] = v;
+            }
+            ctx.putImageData(imgData, 0, 0);
+          }
+
+          c.toBlob(async (blob) => {
+            const buf = await blob.arrayBuffer();
+            resolve({ bytes: new Uint8Array(buf), width: w, height: h });
+          }, 'image/jpeg', quality);
+        };
+        img.src = url;
       });
     }
 
-    async function mergePdfs() {
-      const files = document.getElementById('pdf-files').files;
-      if (!files || files.length < 2) return alert('Seleziona almeno 2 file PDF da unire.');
-      alert('Funzione di unione in corso: elaborati ' + files.length + ' file in locale.');
+    async function generatePdfFromImages() {
+      if (imageQueue.length === 0) return alert('Seleziona almeno una foto.');
+      const { PDFDocument } = window.PDFLib;
+      const quality = parseFloat(document.getElementById('img-quality').value);
+      const bwMode = document.getElementById('img-color').value;
+      const outName = document.getElementById('img-pdf-name').value.trim() || 'immagini.pdf';
+
+      const pdfDoc = await PDFDocument.create();
+      const origSize = imageQueue.reduce((a, b) => a + b.size, 0);
+
+      for (const item of imageQueue) {
+        const { bytes, width, height } = await processImageToJpegBytes(item.url, quality, bwMode);
+        const jpgImage = await pdfDoc.embedJpg(bytes);
+        const page = pdfDoc.addPage([595.28, 841.89]);
+        const margin = 28;
+        const maxW = 595.28 - margin * 2;
+        const maxH = 841.89 - margin * 2;
+        const scale = Math.min(maxW / width, maxH / height);
+        const drawW = width * scale;
+        const drawH = height * scale;
+        page.drawImage(jpgImage, {
+          x: (595.28 - drawW) / 2,
+          y: (841.89 - drawH) / 2,
+          width: drawW,
+          height: drawH
+        });
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const finalSize = downloadPdfBytes(pdfBytes, outName);
+      document.getElementById('img2pdf-status').innerHTML = `
+        <div class="item-card">
+          <div>✅ <strong>PDF creato e scaricato!</strong><br>
+          <small>Peso foto originali: ${formatBytes(origSize)} → Peso PDF finale: <strong>${formatBytes(finalSize)}</strong></small></div>
+        </div>`;
     }
 
-    function previewSignImage(e) {
+    // ================= 2. UNISCI PDF =================
+    async function addPdfToMerge(e) {
+      const files = Array.from(e.target.files || []);
+      for (const f of files) {
+        const buf = await f.arrayBuffer();
+        pdfQueue.push({ id: Date.now() + Math.random(), name: f.name, size: f.size, bytes: buf });
+      }
+      e.target.value = '';
+      renderMergeList();
+    }
+
+    function movePdf(idx, dir) {
+      const target = idx + dir;
+      if (target < 0 || target >= pdfQueue.length) return;
+      const tmp = pdfQueue[idx];
+      pdfQueue[idx] = pdfQueue[target];
+      pdfQueue[target] = tmp;
+      renderMergeList();
+    }
+
+    function removePdf(id) {
+      pdfQueue = pdfQueue.filter((p) => p.id !== id);
+      renderMergeList();
+    }
+
+    function renderMergeList() {
+      const wrap = document.getElementById('merge-list');
+      if (pdfQueue.length === 0) {
+        wrap.innerHTML = '<p style="color:var(--muted)">Nessun PDF in coda.</p>';
+        return;
+      }
+      wrap.innerHTML = pdfQueue.map((p, i) => `
+        <div class="item-card">
+          <div><strong>${i + 1}. ${p.name}</strong> <small>(${formatBytes(p.size)})</small></div>
+          <div>
+            <button class="btn small secondary" onclick="movePdf(${i}, -1)">⬆️</button>
+            <button class="btn small secondary" onclick="movePdf(${i}, 1)">⬇️</button>
+            <button class="btn small danger" onclick="removePdf(${p.id})">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function mergeAllPdfs() {
+      if (pdfQueue.length < 2) return alert('Aggiungi almeno 2 file PDF da unire.');
+      const { PDFDocument } = window.PDFLib;
+      const mergedPdf = await PDFDocument.create();
+      for (const item of pdfQueue) {
+        const srcDoc = await PDFDocument.load(item.bytes);
+        const copiedPages = await mergedPdf.copyPages(srcDoc, srcDoc.getPageIndices());
+        copiedPages.forEach((p) => mergedPdf.addPage(p));
+      }
+      const outBytes = await mergedPdf.save();
+      downloadPdfBytes(outBytes, document.getElementById('merge-name').value.trim() || 'unito.pdf');
+    }
+
+    // ================= 3. ESTRAI / RUOTA PAGINE =================
+    async function inspectPdfForSplit(e) {
       const f = e.target.files[0];
       if (!f) return;
-      const r = new FileReader();
-      r.onload = () => {
-        document.getElementById('sign-out').innerHTML = '<img src="' + r.result + '" style="max-width:100%;border-radius:8px"/>';
-      };
-      r.readAsDataURL(f);
+      const { PDFDocument } = window.PDFLib;
+      splitFileBytes = await f.arrayBuffer();
+      const doc = await PDFDocument.load(splitFileBytes);
+      splitTotalPages = doc.getPageCount();
+      document.getElementById('split-info').textContent = `📄 File caricato: ${f.name} (${splitTotalPages} pagine totali, ${formatBytes(f.size)})`;
     }
 
-    async function applySignature() {
-      const f = document.getElementById('sign-file').files[0];
-      const text = document.getElementById('sign-text').value.trim();
-      if (!f) return alert('Carica un\'immagine.');
-      
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        c.width = img.naturalWidth; c.height = img.naturalHeight;
-        const ctx = c.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        
-        if (text) {
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-          ctx.fillRect(20, c.height - 80, c.width - 40, 50);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 24px sans-serif';
-          ctx.fillText(text, 40, c.height - 45);
+    function parsePageRanges(str, maxPages) {
+      if (!str.trim()) return Array.from({ length: maxPages }, (_, i) => i);
+      const indices = [];
+      str.split(',').forEach((part) => {
+        const p = part.trim();
+        if (p.includes('-')) {
+          const [start, end] = p.split('-').map((n) => parseInt(n, 10));
+          for (let i = start; i <= end; i++) {
+            if (i >= 1 && i <= maxPages) indices.push(i - 1);
+          }
+        } else {
+          const n = parseInt(p, 10);
+          if (n >= 1 && n <= maxPages) indices.push(n - 1);
         }
+      });
+      return indices;
+    }
 
-        c.toBlob((blob) => {
-          lastBlob = blob;
-          lastFilename = 'immagine-firmata.jpg';
-          document.getElementById('sign-out').innerHTML = '<div class="item-card"><div><strong>Immagine elaborata con successo!</strong></div><button class="btn" onclick="openViewer(lastBlob, \'immagine-firmata.jpg\', false)">👁️ Visualizza</button></div>';
-        }, 'image/jpeg', 0.9);
+    async function processSplitRotate() {
+      if (!splitFileBytes) return alert('Carica prima un file PDF.');
+      const { PDFDocument, degrees } = window.PDFLib;
+      const srcDoc = await PDFDocument.load(splitFileBytes);
+      const newDoc = await PDFDocument.create();
+      const rangeStr = document.getElementById('split-pages').value;
+      const rotAngle = parseInt(document.getElementById('split-rot').value, 10);
+      const pageIndices = parsePageRanges(rangeStr, srcDoc.getPageCount());
+
+      if (pageIndices.length === 0) return alert('Nessuna pagina valida selezionata.');
+
+      const copied = await newDoc.copyPages(srcDoc, pageIndices);
+      copied.forEach((page) => {
+        if (rotAngle !== 0) {
+          const cur = page.getRotation().angle;
+          page.setRotation(degrees((cur + rotAngle) % 360));
+        }
+        newDoc.addPage(page);
+      });
+
+      const outBytes = await newDoc.save();
+      downloadPdfBytes(outBytes, 'pdf-elaborato.pdf');
+    }
+
+    // ================= 4. FIRMA COL DITO SU PDF =================
+    const sigCanvas = document.getElementById('sig-pad');
+    const sigCtx = sigCanvas.getContext('2d');
+    let drawing = false;
+    let hasSignature = false;
+
+    sigCtx.strokeStyle = '#0f172a';
+    sigCtx.lineWidth = 2.8;
+    sigCtx.lineCap = 'round';
+
+    function getPos(e) {
+      const r = sigCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - r.left) * (sigCanvas.width / r.width),
+        y: (clientY - r.top) * (sigCanvas.height / r.height)
       };
-      img.src = URL.createObjectURL(f);
+    }
+
+    sigCanvas.addEventListener('pointerdown', (e) => {
+      drawing = true;
+      hasSignature = true;
+      const p = getPos(e);
+      sigCtx.beginPath();
+      sigCtx.moveTo(p.x, p.y);
+    });
+    sigCanvas.addEventListener('pointermove', (e) => {
+      if (!drawing) return;
+      const p = getPos(e);
+      sigCtx.lineTo(p.x, p.y);
+      sigCtx.stroke();
+    });
+    window.addEventListener('pointerup', () => { drawing = false; });
+
+    function clearSignaturePad() {
+      sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      hasSignature = false;
+    }
+
+    async function signPdfDocument() {
+      const f = document.getElementById('sign-pdf-input').files[0];
+      if (!f) return alert('Carica il file PDF da firmare.');
+      const text = document.getElementById('sign-text').value.trim();
+      if (!hasSignature && !text) return alert('Disegna la firma o inserisci un testo.');
+
+      const { PDFDocument, rgb, StandardFonts } = window.PDFLib;
+      const pdfDoc = await PDFDocument.load(await f.arrayBuffer());
+      const pages = pdfDoc.getPages();
+      const posMode = document.getElementById('sign-page-pos').value;
+      const corner = document.getElementById('sign-corner').value;
+
+      let targetPages = [];
+      if (posMode === 'last') targetPages = [pages[pages.length - 1]];
+      else if (posMode === 'first') targetPages = [pages[0]];
+      else targetPages = pages;
+
+      let pngImage = null;
+      if (hasSignature) {
+        const pngDataUrl = sigCanvas.toDataURL('image/png');
+        pngImage = await pdfDoc.embedPng(pngDataUrl);
+      }
+      const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+      targetPages.forEach((page) => {
+        const { width } = page.getSize();
+        const sigW = 150, sigH = 50;
+        let x = width - sigW - 35;
+        if (corner === 'bl') x = 35;
+        if (corner === 'bc') x = (width - sigW) / 2;
+
+        if (pngImage) {
+          page.drawImage(pngImage, { x, y: 42, width: sigW, height: sigH });
+        }
+        if (text) {
+          page.drawText(text, { x, y: 28, size: 10, font, color: rgb(0.1, 0.1, 0.2) });
+        }
+      });
+
+      const outBytes = await pdfDoc.save();
+      downloadPdfBytes(outBytes, 'firmato-' + f.name);
+    }
+
+    // ================= INSTALLAZIONE PWA SU ANDROID =================
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    async function triggerInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      } else {
+        alert('Per scaricare l’app sulla schermata Home: tocca i 3 puntini (⋮) in alto a destra su Chrome e scegli "Aggiungi a schermata Home" → "Installa". (Assicurati di non essere in modalità Incognito).');
+      }
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
     }
   </script>
 </body>
