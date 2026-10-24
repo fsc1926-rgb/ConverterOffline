@@ -1,0 +1,32 @@
+{
+  "name": "ConverterOffline Pro — All-in-One File & Studio Converter",
+  "short_name": "ConverterOffline",
+  "description": "Convertitore Universale 100% Offline: PDF Studio, Immagini (PNG/JPG/WEBP/AVIF/ICO/SVG), Audio/Video (MP3/WAV/WEBM), Dati & Excel (CSV/JSON/XLSX/SQL/XML/YAML), Archivi ZIP, QR e Unità di Misura.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "categories": ["utilities", "productivity", "photo"],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

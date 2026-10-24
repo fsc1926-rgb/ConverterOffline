@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="description" content="ConverterOffline Pro: Convertitore Universale 100% Offline per PDF, Immagini, Audio/Video, Dati/Excel, Archivi ZIP, QR Code e Unità di Misura." />
+  <title>ConverterOffline Pro — Convertitore Universale 100% Offline</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="64x64" href="./icons/favicon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="./css/style.css" />
+
+  <!-- Librerie Client-Side (Pre-cachate dal Service Worker per uso 100% Offline) -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="./icons/icon-192.png" alt="Logo ConverterOffline" />
+      <div>
+        <h1>ConverterOffline <span style="font-weight:400;font-size:0.88rem;color:var(--muted);">PRO v3.0</span></h1>
+        <span class="subtitle">Studio PDF • Immagini • Audio/Video • Dati/Excel • ZIP • Unità &amp; QR</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="toggleHistoryModal()" title="Cronologia conversioni">🕓 Cronologia (<span id="hist-count">0</span>)</button>
+      <button class="icon-btn" id="theme-btn" onclick="toggleTheme()" title="Cambia Tema Chiaro/Scuro">☀️ Tema</button>
+      <button id="btn-install" class="install-btn" onclick="triggerInstall()">📲 Installa App</button>
+      <span id="net-badge" class="badge">🟢 100% Offline Ready</span>
+    </div>
+  </header>
+
+  <nav role="tablist" aria-label="Categorie di conversione">
+    <button id="t-img2pdf" class="active" onclick="switchTab('img2pdf')">🖼️ Foto → PDF</button>
+    <button id="t-pdfstudio" onclick="switchTab('pdfstudio')">📑 Unisci / Estrai / PDF→Img</button>
+    <button id="t-sign" onclick="switchTab('sign')">✍️ Firma &amp; Timbra PDF</button>
+    <button id="t-imgconv" onclick="switchTab('imgconv')">🎨 Converti Immagini</button>
+    <button id="t-media" onclick="switchTab('media')">🎵 Audio &amp; Video</button>
+    <button id="t-data" onclick="switchTab('data')">📊 Dati, CSV, JSON &amp; Excel</button>
+    <button id="t-docs" onclick="switchTab('docs')">📝 Markdown, HTML &amp; Testo</button>
+    <button id="t-zip" onclick="switchTab('zip')">📦 Archivi ZIP</button>
+    <button id="t-units" onclick="switchTab('units')">📐 Unità, Colori, QR &amp; Dev</button>
+  </nav>
+
+  <main>
+    <!-- ==================== TAB 1: FOTO -> PDF ==================== -->
+    <section id="sec-img2pdf">
+      <div class="panel">
+        <h2>🖼️ Converti Foto / Scontrini / Documenti in PDF</h2>
+        <p class="desc">Trasforma una o più immagini in un documento PDF multipagina con filtri scanner, riordino pagine e compressione intelligente.</p>
+
+        <div class="dropzone" onclick="document.getElementById('img-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, addImagesFromFiles)">
+          <strong>📂 Clicca o trascina qui le tue foto</strong>
+          <div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">Supporta JPG, PNG, WEBP, AVIF, BMP, GIF, SVG</div>
+          <input type="file" id="img-input" accept="image/*" multiple onchange="addImages(event)" hidden />
+        </div>
+
+        <div class="grid-3" style="margin-top:12px;">
+          <div>
+            <label>Formato Pagina PDF</label>
+            <select id="img-pagesize">
+              <option value="a4-p" selected>A4 Verticale (Portrait)</option>
+              <option value="a4-l">A4 Orizzontale (Landscape)</option>
+              <option value="letter">US Letter</option>
+              <option value="fit">Adatta esattamente alla Foto</option>
+            </select>
+          </div>
+          <div>
+            <label>Qualità / Compressione Peso</label>
+            <select id="img-quality">
+              <option value="0.92">Massima Qualità (Stampa HD)</option>
+              <option value="0.72" selected>Bilanciata (Ottima per Email / PEC)</option>
+              <option value="0.48">Ultra-Compressa (File leggerissimo)</option>
+            </select>
+          </div>
+          <div>
+            <label>Filtro Immagine</label>
+            <select id="img-color">
+              <option value="color">Colore Originale</option>
+              <option value="bw">Scanner Bianco/Nero Nitido (Scontrini)</option>
+              <option value="gray">Scala di Grigi morbida</option>
+              <option value="contrast">Colore ad Alto Contrasto</option>
+            </select>
+          </div>
+          <div>
+            <label>Margini Pagina (pt)</label>
+            <select id="img-margin">
+              <option value="0">0 pt (Senza bordi)</option>
+              <option value="24" selected>24 pt (Margine standard)</option>
+              <option value="45">45 pt (Margine ampio)</option>
+            </select>
+          </div>
+          <div>
+            <label>Nome File PDF Finale</label>
+            <input type="text" id="img-pdf-name" value="documento-convertito.pdf" />
+          </div>
+        </div>
+
+        <div id="img-thumbs" class="thumb-grid"></div>
+
+        <div class="btn-row">
+          <button class="btn success" onclick="generatePdfFromImages()">⚡ Crea e Scarica PDF</button>
+          <button class="btn secondary" onclick="clearImages()">🗑️ Svuota Lista</button>
+        </div>
+        <div id="img2pdf-status" style="margin-top:12px;"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: STUDIO PDF (UNISCI, ESTRAI, PDF -> IMMAGINI / TESTO) ==================== -->
+    <section id="sec-pdfstudio" hidden>
+      <!-- Sotto-pannello A: UNISCI PDF -->
+      <div class="panel">
+        <h2>📑 Unisci più File PDF in un Unico Documento</h2>
+        <p class="desc">Combina quanti PDF vuoi nell'ordine che preferisci, tutto in locale senza caricare nulla su internet.</p>
+        <input type="file" id="merge-input" accept=".pdf,application/pdf" multiple onchange="addPdfToMerge(event)" />
+        <div id="merge-list" style="margin-top:12px;"></div>
+
+        <div class="grid-2" style="margin-top:10px;">
+          <div>
+            <label>Nome del PDF Unito</label>
+            <input type="text" id="merge-name" value="pdf-unito.pdf" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn success" onclick="mergeAllPdfs()">⚡ Unisci e Scarica PDF</button>
+          <button class="btn secondary" onclick="pdfQueue=[];renderMergeList()">🗑️ Svuota Coda</button>
+        </div>
+      </div>
+
+      <!-- Sotto-pannello B: ESTRAI / RUOTA PAGINE -->
+      <div class="panel">
+        <h2>✂️ Estrai Singole Pagine, Dividi o Ruota un PDF</h2>
+        <p class="desc">Estrai un intervallo di pagine (es. <code>1, 3, 5-8</code>) o correggi l'orientamento di un PDF.</p>
+        <input type="file" id="split-input" accept=".pdf,application/pdf" onchange="inspectPdfForSplit(event)" />
+        <div id="split-info" style="margin-top:8px;color:var(--accent);font-weight:600;"></div>
+
+        <div class="grid-3">
+          <div>
+            <label>Pagine da Estrarre (vuoto = tutte)</label>
+            <input type="text" id="split-pages" placeholder="Es. 1, 3, 5-7" />
+          </div>
+          <div>
+            <label>Rotazione Pagine</label>
+            <select id="split-rot">
+              <option value="0">0° (Non ruotare)</option>
+              <option value="90">90° Senso Orario</option>
+              <option value="180">180° Capovolgi</option>
+              <option value="270">270° Senso Antiorario</option>
+            </select>
+          </div>
+          <div>
+            <label>Nome File Output</label>
+            <input type="text" id="split-out-name" value="pdf-estratto.pdf" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn success" onclick="processSplitRotate()">⚡ Elabora e Scarica PDF</button>
+        </div>
+      </div>
+
+      <!-- Sotto-pannello C: PDF -> IMMAGINI (PNG/JPG/WEBP) O TESTO (TXT/MD) -->
+      <div class="panel">
+        <h2>🖼️ PDF → Immagini (PNG / JPG / WEBP) oppure Estrai Testo (.TXT / .MD)</h2>
+        <p class="desc">Renderizza ogni pagina del tuo PDF come immagine ad alta risoluzione o estrai tutto il testo contenuto.</p>
+        <div class="grid-3">
+          <div>
+            <label>Seleziona File PDF</label>
+            <input type="file" id="pdf2img-input" accept=".pdf,application/pdf" />
+          </div>
+          <div>
+            <label>Formato di Output</label>
+            <select id="pdf2img-format">
+              <option value="image/png" selected>Immagini PNG (Lossless)</option>
+              <option value="image/jpeg">Immagini JPG (Leggero)</option>
+              <option value="image/webp">Immagini WEBP (Ottimizzato)</option>
+              <option value="txt">Estrai tutto il Testo (.TXT)</option>
+              <option value="md">Estrai Testo formattato (.MD)</option>
+            </select>
+          </div>
+          <div>
+            <label>Risoluzione Rendering (DPI / Scala)</label>
+            <select id="pdf2img-scale">
+              <option value="1.5">Standard (150 DPI)</option>
+              <option value="2.0" selected>Alta Definizione (200 DPI)</option>
+              <option value="3.0">Ultra HD (300 DPI - Stampa)</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn success" onclick="convertPdfToImagesOrText()">⚡ Converti PDF</button>
+          <button class="btn secondary" id="btn-pdf2img-zip" onclick="downloadPdfImagesAsZip()" hidden>📦 Scarica Tutte le Pagine in .ZIP</button>
+        </div>
+        <div id="pdf2img-output" class="thumb-grid"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: FIRMA & FILIGRANA PDF ==================== -->
+    <section id="sec-sign" hidden>
+      <div class="panel">
+        <h2>✍️ Firma Autografa, Timbro e Filigrana su PDF</h2>
+        <p class="desc">Disegna la tua firma col dito o mouse (o carica un timbro PNG), scegli colore dell'inchiostro, data e posizione.</p>
+        <div class="grid-3">
+          <div>
+            <label>1. Carica il PDF da Firmare</label>
+            <input type="file" id="sign-pdf-input" accept=".pdf,application/pdf" />
+          </div>
+          <div>
+            <label>2. Testo / Data opzionale sotto la firma</label>
+            <input type="text" id="sign-text" placeholder="Es. Firmato il 24/10/2026 - Per Accettazione" />
+          </div>
+          <div>
+            <label>Colore Inchiostro Firma</label>
+            <select id="sign-color" onchange="updateSignatureColor()">
+              <option value="#0f172a">Nero Grafite</option>
+              <option value="#1d4ed8" selected>Blu Penna Biro</option>
+              <option value="#dc2626">Rosso Timbro</option>
+            </select>
+          </div>
+        </div>
+
+        <label>3. Disegna la tua Firma nel riquadro oppure carica un'immagine PNG trasparente:</label>
+        <canvas id="sig-pad" width="500" height="165"></canvas>
+        <div class="btn-row">
+          <button class="btn small secondary" onclick="clearSignaturePad()">🧹 Cancella Firma</button>
+          <label style="margin:0;display:inline-flex;align-items:center;gap:6px;cursor:pointer;" class="btn small secondary">
+            🖼️ Carica Immagine Timbro/Firma
+            <input type="file" id="sign-img-upload" accept="image/*" onchange="loadStampIntoCanvas(event)" hidden />
+          </label>
+        </div>
+
+        <div class="grid-3" style="margin-top:8px;">
+          <div>
+            <label>Su quale pagina applicare?</label>
+            <select id="sign-page-pos">
+              <option value="last">Ultima pagina del PDF</option>
+              <option value="first">Prima pagina del PDF</option>
+              <option value="all">Tutte le pagine</option>
+            </select>
+          </div>
+          <div>
+            <label>Posizione nella pagina</label>
+            <select id="sign-corner">
+              <option value="br">In basso a destra</option>
+              <option value="bl">In basso a sinistra</option>
+              <option value="bc">In basso al centro</option>
+              <option value="tr">In alto a destra</option>
+            </select>
+          </div>
+          <div>
+            <label>Filigrana diagonale (Opzionale)</label>
+            <input type="text" id="sign-watermark" placeholder="Es. COPIA CONFORME / RISERVATO" />
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn success" onclick="signPdfDocument()">✍️ Firma e Scarica PDF</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: CONVERTITORE IMMAGINI UNIVERSALE ==================== -->
+    <section id="sec-imgconv" hidden>
+      <div class="panel">
+        <h2>🎨 Convertitore Immagini Universale (Batch &amp; Multi-Formato)</h2>
+        <p class="desc">Converti istantaneamente tra tutti i formati grafici moderni, ridimensiona, genera icone <code>.ICO</code> reali o esporta in <code>.SVG</code> / <code>Base64</code>.</p>
+        <div class="format-pills">
+          <span class="pill">Output: PNG</span>
+          <span class="pill">JPG / JPEG</span>
+          <span class="pill">WEBP</span>
+          <span class="pill">AVIF</span>
+          <span class="pill">ICO (Favicon 16/32/48/64px)</span>
+          <span class="pill">BMP</span>
+          <span class="pill">SVG</span>
+          <span class="pill">Base64 Data URI</span>
+        </div>
+
+        <div class="dropzone" onclick="document.getElementById('conv-img-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, addBatchImages)">
+          <strong>🖼️ Clicca o trascina qui le immagini da convertire (anche in blocco)</strong>
+          <input type="file" id="conv-img-input" accept="image/*" multiple onchange="addBatchImages(event.target.files)" hidden />
+        </div>
+
+        <div class="grid-3" style="margin-top:12px;">
+          <div>
+            <label>Formato di Destinazione (Output)</label>
+            <select id="conv-img-format">
+              <option value="webp" selected>WEBP (Compressione Web Next-Gen)</option>
+              <option value="png">PNG (Senza perdita / Trasparenza)</option>
+              <option value="jpeg">JPG / JPEG (Compatibilità universale)</option>
+              <option value="avif">AVIF (Ultra compresso)</option>
+              <option value="ico">ICO (Vera Icona Windows / Favicon)</option>
+              <option value="bmp">BMP (Bitmap non compresso)</option>
+              <option value="svg">SVG (Incapsulamento Vettoriale)</option>
+              <option value="base64">Base64 (.txt con stringa Data URI)</option>
+            </select>
+          </div>
+          <div>
+            <label>Qualità Output (<span id="conv-q-val">85</span>%)</label>
+            <input type="range" id="conv-img-quality" min="10" max="100" value="85" oninput="document.getElementById('conv-q-val').textContent=this.value" />
+          </div>
+          <div>
+            <label>Ridimensiona Larghezza Max (px, vuoto = originale)</label>
+            <input type="number" id="conv-img-maxw" placeholder="Es. 1920 (lascia vuoto per 100%)" min="16" max="8000" />
+          </div>
+        </div>
+
+        <div id="conv-img-list" style="margin-top:12px;"></div>
+
+        <div class="btn-row">
+          <button class="btn success" onclick="runBatchImageConversion()">⚡ Converti Tutte le Immagini</button>
+          <button class="btn warning" id="btn-img-zip" onclick="downloadConvertedImagesZip()" hidden>📦 Scarica Tutte in .ZIP</button>
+          <button class="btn secondary" onclick="clearBatchImages()">🗑️ Svuota</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: AUDIO & VIDEO CONVERTER ==================== -->
+    <section id="sec-media" hidden>
+      <div class="panel">
+        <h2>🎵 Convertitore Audio &amp; Estrattore Traccia da Video</h2>
+        <p class="desc">Converti qualsiasi file Audio o estrai la traccia sonora da un Video (<code>MP4</code>, <code>MOV</code>, <code>WEBM</code>, <code>MKV</code>) in <strong>MP3</strong> o <strong>WAV</strong> con taglio (Trim) e ricampionamento.</p>
+        <div class="format-pills">
+          <span class="pill">Input: MP3, WAV, OGG, M4A, FLAC, MP4, WEBM, MOV</span>
+          <span class="pill">Output: MP3 (128/192/320 kbps)</span>
+          <span class="pill">Output: WAV (16-bit / 24-bit PCM)</span>
+        </div>
+
+        <div class="grid-3" style="margin-top:10px;">
+          <div>
+            <label>1. Seleziona File Audio o Video</label>
+            <input type="file" id="audio-input" accept="audio/*,video/*" onchange="inspectAudioFile(event)" />
+          </div>
+          <div>
+            <label>2. Formato Audio di Output</label>
+            <select id="audio-out-format">
+              <option value="mp3-192" selected>MP3 — 192 kbps (Alta Qualità)</option>
+              <option value="mp3-320">MP3 — 320 kbps (Qualità Studio)</option>
+              <option value="mp3-128">MP3 — 128 kbps (Leggero)</option>
+              <option value="wav-16">WAV — 16-bit PCM Lossless</option>
+              <option value="wav-24">WAV — 24-bit PCM Studio Master</option>
+            </select>
+          </div>
+          <div>
+            <label>Frequenza di Campionamento (Sample Rate)</label>
+            <select id="audio-samplerate">
+              <option value="44100" selected>44.100 Hz (Standard CD)</option>
+              <option value="48000">48.000 Hz (Standard Video/DVD)</option>
+              <option value="22050">22.050 Hz (Voce / Podcast leggero)</option>
+            </select>
+          </div>
+          <div>
+            <label>Canali Audio</label>
+            <select id="audio-channels">
+              <option value="2" selected>Stereo (2 Canali)</option>
+              <option value="1">Mono (1 Canale - dimezza peso)</option>
+            </select>
+          </div>
+          <div>
+            <label>Taglia Inizio (secondi, 0 = dall'inizio)</label>
+            <input type="number" id="audio-trim-start" value="0" min="0" step="0.5" />
+          </div>
+          <div>
+            <label>Taglia Fine (secondi, 0 = fino alla fine)</label>
+            <input type="number" id="audio-trim-end" value="0" min="0" step="0.5" />
+          </div>
+        </div>
+
+        <div id="audio-info" style="margin-top:10px;color:var(--accent);font-weight:600;"></div>
+        <div class="progress-bar" id="audio-progress-wrap" hidden><div id="audio-progress-bar"></div></div>
+
+        <div class="btn-row">
+          <button class="btn success" onclick="convertAudioTrack()">⚡ Converti e Scarica Audio</button>
+        </div>
+        <div id="audio-output-box" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- Sotto-pannello Video: Cattura Frame HD o Converti in WebM -->
+      <div class="panel">
+        <h2>🎬 Strumenti Video: Estrai Fotogrammi HD (PNG/JPG/WEBP) o Converti in WebM</h2>
+        <p class="desc">Carica un video per catturare istantaneamente qualsiasi fotogramma in alta definizione o ricodificarlo in formato WebM.</p>
+        <input type="file" id="video-tool-input" accept="video/*" onchange="loadVideoForTools(event)" />
+        <div id="video-workspace" hidden style="margin-top:14px;">
+          <video id="video-preview" controls style="width:100%;max-height:340px;background:#000;border-radius:10px;"></video>
+          <div class="grid-2" style="margin-top:10px;">
+            <div>
+              <label>Formato Fotogramma Catturato</label>
+              <select id="video-frame-fmt">
+                <option value="image/png">PNG (Alta Qualità)</option>
+                <option value="image/jpeg">JPG (Foto)</option>
+                <option value="image/webp">WEBP</option>
+              </select>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn success" onclick="captureVideoFrame()">📸 Cattura e Scarica Fotogramma Attuale</button>
+            <button class="btn primary" onclick="recordVideoToWebm()">🎥 Ricodifica Clip in .WEBM (5 sec dal punto attuale)</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: DATI, CSV, JSON, EXCEL, XML, YAML, SQL ==================== -->
+    <section id="sec-data" hidden>
+      <div class="panel">
+        <h2>📊 Convertitore Universale Dati, Tabelle &amp; Fogli Excel</h2>
+        <p class="desc">Converti istantaneamente tra <strong>JSON, CSV, TSV, Excel (.XLSX), XML, YAML, SQL (INSERT), Tabella HTML e Tabella Markdown</strong>.</p>
+        <div class="format-pills">
+          <span class="pill">JSON</span>
+          <span class="pill">CSV / TSV</span>
+          <span class="pill">XLSX (Excel)</span>
+          <span class="pill">XML</span>
+          <span class="pill">YAML</span>
+          <span class="pill">SQL INSERT</span>
+          <span class="pill">Markdown Table</span>
+          <span class="pill">HTML Table</span>
+        </div>
+
+        <div class="grid-3" style="margin-top:12px;">
+          <div>
+            <label>Carica un File Dati (CSV, JSON, XLSX, XML, YAML)</label>
+            <input type="file" id="data-file-input" accept=".csv,.tsv,.json,.xlsx,.xls,.xml,.yaml,.yml,.txt" onchange="loadDataFile(event)" />
+          </div>
+          <div>
+            <label>Formato Sorgente (Input)</label>
+            <select id="data-in-fmt">
+              <option value="auto" selected>Rileva Automaticamente</option>
+              <option value="json">JSON</option>
+              <option value="csv">CSV (Separato da virgola/punto e virgola)</option>
+              <option value="tsv">TSV (Separato da Tab)</option>
+              <option value="yaml">YAML</option>
+              <option value="xml">XML</option>
+            </select>
+          </div>
+          <div>
+            <label>Formato di Destinazione (Output)</label>
+            <select id="data-out-fmt">
+              <option value="csv">CSV (.csv)</option>
+              <option value="json" selected>JSON Formattato (.json)</option>
+              <option value="xlsx">Excel (.xlsx)</option>
+              <option value="sql">Query SQL INSERT (.sql)</option>
+              <option value="yaml">YAML (.yaml)</option>
+              <option value="xml">XML (.xml)</option>
+              <option value="md">Tabella Markdown (.md)</option>
+              <option value="html">Tabella HTML (.html)</option>
+              <option value="tsv">TSV (.tsv)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:10px;">
+          <div>
+            <label>Dati di Input (Incolla o modifica qui)</label>
+            <textarea id="data-input-text" placeholder='[{"nome": "Mario", "ruolo": "Admin", "attivo": true}, {"nome": "Lucia", "ruolo": "Editor", "attivo": false}]'></textarea>
+          </div>
+          <div>
+            <label>Risultato Convertito (Output)</label>
+            <textarea id="data-output-text" readonly placeholder="Il risultato della conversione apparirà qui..."></textarea>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn success" onclick="convertDataFormats()">⚡ Converti Dati</button>
+          <button class="btn secondary" onclick="swapDataInputOutput()">⇄ Inverti Input / Output</button>
+          <button class="btn secondary" onclick="copyTextById('data-output-text')">📋 Copia Risultato</button>
+          <button class="btn primary" onclick="downloadConvertedData()">💾 Scarica File Convertito</button>
+          <button class="btn secondary" onclick="loadSampleData()">🧪 Carica Dati di Esempio</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 7: DOCUMENTI MARKDOWN, HTML, TXT, PDF ==================== -->
+    <section id="sec-docs" hidden>
+      <div class="panel">
+        <h2>📝 Convertitore Documenti: Markdown ↔ HTML ↔ TXT ↔ PDF</h2>
+        <p class="desc">Scrivi o carica un file Markdown / HTML / Testo e convertilo istantaneamente con anteprima live.</p>
+
+        <div class="grid-3">
+          <div>
+            <label>Carica File (.md, .html, .txt)</label>
+            <input type="file" accept=".md,.markdown,.html,.htm,.txt" onchange="loadDocFile(event)" />
+          </div>
+          <div>
+            <label>Conversione Richiesta</label>
+            <select id="doc-conv-mode">
+              <option value="md2html" selected>Markdown → HTML Completo</option>
+              <option value="md2txt">Markdown → Testo Puro (.TXT)</option>
+              <option value="html2md">HTML → Markdown (.MD)</option>
+              <option value="html2txt">HTML → Testo Puro (.TXT)</option>
+              <option value="txt2pdf">Testo / Markdown → Documento PDF (A4)</option>
+            </select>
+          </div>
+          <div>
+            <label>Nome File da Scaricare</label>
+            <input type="text" id="doc-out-name" value="documento-convertito" />
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:10px;">
+          <div>
+            <label>Sorgente Documento</label>
+            <textarea id="doc-input" placeholder="# Titolo Documento&#10;&#10;Scrivi qui in **Markdown**, *HTML* o testo semplice..."></textarea>
+          </div>
+          <div>
+            <label>Output Convertito</label>
+            <textarea id="doc-output" placeholder="Il codice o testo convertito apparirà qui..."></textarea>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn success" onclick="convertDocument()">⚡ Converti Documento</button>
+          <button class="btn secondary" onclick="copyTextById('doc-output')">📋 Copia Output</button>
+          <button class="btn primary" onclick="downloadConvertedDoc()">💾 Scarica Documento</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 8: ARCHIVI ZIP (CREA & ESTRAI) ==================== -->
+    <section id="sec-zip" hidden>
+      <div class="panel">
+        <h2>📦 Crea un Archivio .ZIP da più File</h2>
+        <p class="desc">Seleziona qualsiasi tipo di file dal tuo dispositivo e comprimili in un unico archivio <code>.zip</code> scaricabile.</p>
+        <input type="file" id="zip-create-input" multiple onchange="addFilesToZipCreator(event)" />
+        <div id="zip-create-list" style="margin-top:10px;"></div>
+
+        <div class="grid-2" style="margin-top:10px;">
+          <div>
+            <label>Livello di Compressione</label>
+            <select id="zip-level">
+              <option value="6" selected>Bilanciata (Livello 6 - Veloce)</option>
+              <option value="9">Massima Compressione (Livello 9)</option>
+              <option value="0">Nessuna Compressione (Solo archiviazione rapida)</option>
+            </select>
+          </div>
+          <div>
+            <label>Nome Archivio .ZIP</label>
+            <input type="text" id="zip-out-name" value="archivio-compresso.zip" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn success" onclick="generateZipArchive()">📦 Crea e Scarica .ZIP</button>
+          <button class="btn secondary" onclick="zipCreatorQueue=[];renderZipCreatorList()">🗑️ Svuota Lista</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>📂 Apri ed Estrai File da un Archivio .ZIP</h2>
+        <p class="desc">Ispeziona il contenuto di un file <code>.zip</code> ed estrai i singoli file direttamente nel browser.</p>
+        <input type="file" id="zip-extract-input" accept=".zip,application/zip" onchange="extractZipArchive(event)" />
+        <div id="zip-extract-list" style="margin-top:12px;"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 9: UNITÀ DI MISURA, COLORI, QR CODE & DEV TOOLS ==================== -->
+    <section id="sec-units" hidden>
+      <!-- Sotto-pannello A: Unità di Misura -->
+      <div class="panel">
+        <h2>📐 Convertitore Unità di Misura Fisiche &amp; Digitali</h2>
+        <div class="grid-3">
+          <div>
+            <label>Categoria Grandezza</label>
+            <select id="unit-cat" onchange="populateUnitSelects()">
+              <option value="length">Lunghezza (m, km, cm, mm, in, ft, mi)</option>
+              <option value="weight">Peso / Massa (kg, g, mg, lb, oz, t)</option>
+              <option value="temp">Temperatura (°C, °F, Kelvin)</option>
+              <option value="data">Dati Digitali (B, KB, MB, GB, TB, KiB, MiB, GiB)</option>
+              <option value="speed">Velocità (km/h, m/s, mph, nodi)</option>
+              <option value="area">Area (m², km², ettari, ft², acri)</option>
+              <option value="volume">Volume (Litri, ml, m³, gal USA, fl oz)</option>
+              <option value="time">Tempo (sec, min, ore, giorni, settimane)</option>
+            </select>
+          </div>
+          <div>
+            <label>Valore da Convertire</label>
+            <input type="number" id="unit-val" value="1" step="any" oninput="computeUnitConversion()" />
+          </div>
+          <div>
+            <label>Risultato Calcolato</label>
+            <input type="text" id="unit-res" readonly style="font-weight:700;color:var(--accent);" />
+          </div>
+        </div>
+        <div class="swap-box" style="margin-top:10px;">
+          <div style="flex:1;">
+            <label>Da Unità</label>
+            <select id="unit-from" onchange="computeUnitConversion()"></select>
+          </div>
+          <button class="swap-btn" onclick="swapUnits()" title="Inverti unità">⇄</button>
+          <div style="flex:1;">
+            <label>A Unità</label>
+            <select id="unit-to" onchange="computeUnitConversion()"></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sotto-pannello B: QR Code Generator (PNG / SVG) -->
+      <div class="panel">
+        <h2>📱 Generatore QR Code Offline (Output PNG &amp; SVG)</h2>
+        <div class="grid-2">
+          <div>
+            <label>Testo, URL, Wi-Fi o vCard da codificare nel QR Code</label>
+            <input type="text" id="qr-text" value="https://github.com" oninput="generateQrCode()" />
+            <div class="btn-row">
+              <button class="btn success" onclick="downloadQrCode('png')">💾 Scarica QR (.PNG)</button>
+              <button class="btn primary" onclick="downloadQrCode('svg')">💾 Scarica QR Vettoriale (.SVG)</button>
+            </div>
+          </div>
+          <div style="text-align:center;">
+            <div id="qr-preview" style="background:#fff;display:inline-block;padding:12px;border-radius:10px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sotto-pannello C: Colori & Codifiche Dev -->
+      <div class="panel">
+        <h2>🎨 Convertitore Colori (HEX ↔ RGB ↔ HSL ↔ CMYK) &amp; Codifiche Dev</h2>
+        <div class="grid-3">
+          <div>
+            <label>Seleziona o Inserisci Colore HEX</label>
+            <div style="display:flex;gap:8px;">
+              <input type="color" id="col-picker" value="#3b82f6" onchange="updateColorFromHex(this.value)" style="width:54px;height:42px;padding:2px;border-radius:8px;border:1px solid var(--border);background:var(--surface3);cursor:pointer;" />
+              <input type="text" id="col-hex" value="#3b82f6" oninput="updateColorFromHex(this.value)" />
+            </div>
+          </div>
+          <div>
+            <label>RGB / HSL</label>
+            <input type="text" id="col-rgb-hsl" readonly />
+          </div>
+          <div>
+            <label>CMYK (Stampa)</label>
+            <input type="text" id="col-cmyk" readonly />
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;" />
+
+        <div class="grid-3">
+          <div>
+            <label>Strumento di Codifica / Hash</label>
+            <select id="dev-mode">
+              <option value="b64enc">Testo → Base64 Encode</option>
+              <option value="b64dec">Base64 → Testo Decode</option>
+              <option value="urlenc">URL Encode</option>
+              <option value="urldec">URL Decode</option>
+              <option value="hexenc">Testo → Esadecimale (HEX)</option>
+              <option value="binenc">Testo → Binario (0101)</option>
+              <option value="sha256">Calcola Hash SHA-256</option>
+            </select>
+          </div>
+          <div>
+            <label>Input</label>
+            <input type="text" id="dev-in" placeholder="Inserisci testo qui..." oninput="runDevEncoding()" />
+          </div>
+          <div>
+            <label>Output <button class="btn small secondary" style="padding:2px 8px;margin-left:6px;" onclick="copyTextById('dev-out')">Copia</button></label>
+            <input type="text" id="dev-out" readonly />
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== MODALE CRONOLOGIA CONVERSIONI ==================== -->
+  <div id="history-modal" class="modal-backdrop" hidden onclick="if(event.target===this)toggleHistoryModal()">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0;color:var(--accent);">🕓 Cronologia Conversioni Recenti</h3>
+        <button class="btn small secondary" onclick="toggleHistoryModal()">✕ Chiudi</button>
+      </div>
+      <p style="font-size:0.82rem;color:var(--muted);">Salvata localmente sul tuo dispositivo (<code>localStorage</code>).</p>
+      <div id="history-list"></div>
+      <div class="btn-row">
+        <button class="btn small danger" onclick="clearHistory()">🗑️ Cancella Cronologia</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <footer>
+    ConverterOffline Pro v3.0 — 100% Client-Side &amp; Privacy-First (Nessun file viene mai inviato a server esterni). Pronto per GitHub Pages.
+  </footer>
+
+  <script src="./js/app.js"></script>
+</body>
+</html>
