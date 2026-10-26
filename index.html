@@ -6,13 +6,10 @@
   <meta name="theme-color" content="#2563eb" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="description" content="ConverterOffline Pro: Convertitore Universale 100% Offline per PDF, Immagini, Audio/Video, Dati/Excel, Archivi ZIP, QR Code e Unità di Misura." />
+  <meta name="description" content="ConverterOffline Pro v3.1: Convertitore Universale 100% Offline per PDF, Immagini, Audio/Video, Dati/Excel, Archivi ZIP, QR Code e Unità di Misura." />
   <title>ConverterOffline Pro — Convertitore Universale 100% Offline</title>
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" type="image/png" sizes="64x64" href="./icons/favicon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232563eb'/%3E%3Ccircle cx='50' cy='50' r='34' fill='%230f172a' stroke='%2393c5fd' stroke-width='3'/%3E%3Cpath d='M34 41h24v-6l11 9-11 9v-6H34z' fill='%2338bdf8'/%3E%3Cpath d='M66 59H42v6l-11-9 11-9v6h24z' fill='%2310b981'/%3E%3C/svg%3E" />
 
   <!-- Librerie Client-Side (Pre-cachate dal Service Worker per uso 100% Offline) -->
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -22,13 +19,397 @@
   <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --surface3: #0b1120;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #38bdf8;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --border: #334155;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
+    }
+
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface2: #e2e8f0;
+      --surface3: #f8fafc;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #0284c7;
+      --text: #0f172a;
+      --muted: #64748b;
+      --danger: #dc2626;
+      --success: #059669;
+      --warning: #d97706;
+      --border: #cbd5e1;
+      --shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 70px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    header {
+      background: var(--surface);
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: var(--shadow);
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand svg { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
+    header h1 { margin: 0; font-size: 1.22rem; color: var(--accent); letter-spacing: -0.02em; }
+    header .subtitle { font-size: 0.76rem; color: var(--muted); display: block; }
+    .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    .badge {
+      background: var(--success);
+      color: #ffffff;
+      padding: 5px 11px;
+      border-radius: 99px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .badge.offline-mode { background: var(--warning); }
+
+    .icon-btn {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 12px;
+      border-radius: 99px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .icon-btn:hover { border-color: var(--primary); }
+
+    .install-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 99px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .install-btn:hover { background: var(--primary-hover); }
+
+    nav {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--surface3);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+
+    nav button {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 9px 14px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+      font-size: 0.86rem;
+      transition: all 0.15s ease;
+    }
+    nav button:hover { border-color: var(--primary); }
+    nav button.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+      box-shadow: 0 3px 10px rgba(59, 130, 246, 0.35);
+    }
+
+    main { max-width: 1040px; margin: 18px auto; padding: 0 14px; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow);
+    }
+    .panel h2 {
+      margin-top: 0;
+      margin-bottom: 6px;
+      font-size: 1.15rem;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel p.desc { margin-top: 0; margin-bottom: 14px; font-size: 0.86rem; color: var(--muted); }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 5px;
+      margin-top: 10px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="file"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface3);
+      color: var(--text);
+      font-size: 0.92rem;
+      transition: border-color 0.15s;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+
+    textarea {
+      min-height: 150px;
+      font-family: 'Fira Code', Consolas, monospace;
+      font-size: 0.85rem;
+      resize: vertical;
+    }
+
+    .dropzone {
+      border: 2px dashed var(--primary);
+      background: var(--surface3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: var(--accent);
+    }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: transform 0.1s, opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.94; }
+    .btn:active { transform: scale(0.98); }
+    .btn.secondary { background: var(--surface2); color: var(--text); }
+    .btn.danger { background: var(--danger); color: #fff; }
+    .btn.success { background: var(--success); color: #ffffff; }
+    .btn.warning { background: var(--warning); color: #ffffff; }
+    .btn.small { padding: 6px 11px; font-size: 0.78rem; }
+
+    .item-card {
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .thumb-box {
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      text-align: center;
+      position: relative;
+    }
+    .thumb-box img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: #000;
+    }
+
+    canvas#sig-pad {
+      width: 100%;
+      max-width: 500px;
+      height: 165px;
+      background: #ffffff;
+      border-radius: 10px;
+      border: 2px dashed var(--primary);
+      touch-action: none;
+      display: block;
+      margin-top: 8px;
+      cursor: crosshair;
+    }
+
+    .format-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 99px;
+      background: var(--surface2);
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+
+    .swap-box { display: flex; align-items: flex-end; gap: 10px; }
+    .swap-btn {
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--surface2);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .swap-btn:hover { background: var(--primary); color: #fff; }
+
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      background: var(--surface);
+      color: var(--text);
+      border-left: 4px solid var(--success);
+      border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      font-size: 0.86rem;
+      font-weight: 600;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px;
+    }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      max-width: 640px;
+      width: 100%;
+      max-height: 82vh;
+      overflow-y: auto;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--surface3);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress-bar > div {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+
+    footer { text-align: center; color: var(--muted); font-size: 0.78rem; margin-top: 30px; padding: 14px; }
+  </style>
 </head>
 <body>
   <header>
     <div class="brand">
-      <img src="./icons/icon-192.png" alt="Logo ConverterOffline" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
+        <rect width="100" height="100" rx="22" fill="#2563eb"/>
+        <circle cx="50" cy="50" r="34" fill="#0f172a" stroke="#93c5fd" stroke-width="3"/>
+        <path d="M34 41h24v-6l11 9-11 9v-6H34z" fill="#38bdf8"/>
+        <path d="M66 59H42v6l-11-9 11-9v6h24z" fill="#10b981"/>
+      </svg>
       <div>
-        <h1>ConverterOffline <span style="font-weight:400;font-size:0.88rem;color:var(--muted);">PRO v3.0</span></h1>
+        <h1>ConverterOffline <span style="font-weight:400;font-size:0.88rem;color:var(--muted);">PRO v3.1</span></h1>
         <span class="subtitle">Studio PDF • Immagini • Audio/Video • Dati/Excel • ZIP • Unità &amp; QR</span>
       </div>
     </div>
@@ -62,8 +443,8 @@
         <div class="dropzone" onclick="document.getElementById('img-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, addImagesFromFiles)">
           <strong>📂 Clicca o trascina qui le tue foto</strong>
           <div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">Supporta JPG, PNG, WEBP, AVIF, BMP, GIF, SVG</div>
-          <input type="file" id="img-input" accept="image/*" multiple onchange="addImages(event)" hidden />
         </div>
+        <input type="file" id="img-input" accept="image/*" multiple onchange="addImages(event)" hidden />
 
         <div class="grid-3" style="margin-top:12px;">
           <div>
@@ -116,9 +497,8 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 2: STUDIO PDF (UNISCI, ESTRAI, PDF -> IMMAGINI / TESTO) ==================== -->
+    <!-- ==================== TAB 2: STUDIO PDF ==================== -->
     <section id="sec-pdfstudio" hidden>
-      <!-- Sotto-pannello A: UNISCI PDF -->
       <div class="panel">
         <h2>📑 Unisci più File PDF in un Unico Documento</h2>
         <p class="desc">Combina quanti PDF vuoi nell'ordine che preferisci, tutto in locale senza caricare nulla su internet.</p>
@@ -137,7 +517,6 @@
         </div>
       </div>
 
-      <!-- Sotto-pannello B: ESTRAI / RUOTA PAGINE -->
       <div class="panel">
         <h2>✂️ Estrai Singole Pagine, Dividi o Ruota un PDF</h2>
         <p class="desc">Estrai un intervallo di pagine (es. <code>1, 3, 5-8</code>) o correggi l'orientamento di un PDF.</p>
@@ -168,7 +547,6 @@
         </div>
       </div>
 
-      <!-- Sotto-pannello C: PDF -> IMMAGINI (PNG/JPG/WEBP) O TESTO (TXT/MD) -->
       <div class="panel">
         <h2>🖼️ PDF → Immagini (PNG / JPG / WEBP) oppure Estrai Testo (.TXT / .MD)</h2>
         <p class="desc">Renderizza ogni pagina del tuo PDF come immagine ad alta risoluzione o estrai tutto il testo contenuto.</p>
@@ -216,7 +594,7 @@
           </div>
           <div>
             <label>2. Testo / Data opzionale sotto la firma</label>
-            <input type="text" id="sign-text" placeholder="Es. Firmato il 24/10/2026 - Per Accettazione" />
+            <input type="text" id="sign-text" placeholder="Es. Firmato il 25/10/2026 - Per Accettazione" />
           </div>
           <div>
             <label>Colore Inchiostro Firma</label>
@@ -272,22 +650,22 @@
     <section id="sec-imgconv" hidden>
       <div class="panel">
         <h2>🎨 Convertitore Immagini Universale (Batch &amp; Multi-Formato)</h2>
-        <p class="desc">Converti istantaneamente tra tutti i formati grafici moderni, ridimensiona, genera icone <code>.ICO</code> reali o esporta in <code>.SVG</code> / <code>Base64</code>.</p>
+        <p class="desc">Converti istantaneamente tra tutti i formati grafici moderni, ridimensiona, genera icone <code>.ICO</code> reali, <code>.BMP</code> a 24-bit o esporta in <code>.SVG</code> / <code>Base64</code>.</p>
         <div class="format-pills">
           <span class="pill">Output: PNG</span>
           <span class="pill">JPG / JPEG</span>
           <span class="pill">WEBP</span>
           <span class="pill">AVIF</span>
-          <span class="pill">ICO (Favicon 16/32/48/64px)</span>
-          <span class="pill">BMP</span>
+          <span class="pill">ICO (Favicon 64x64)</span>
+          <span class="pill">BMP (24-bit)</span>
           <span class="pill">SVG</span>
           <span class="pill">Base64 Data URI</span>
         </div>
 
         <div class="dropzone" onclick="document.getElementById('conv-img-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, addBatchImages)">
           <strong>🖼️ Clicca o trascina qui le immagini da convertire (anche in blocco)</strong>
-          <input type="file" id="conv-img-input" accept="image/*" multiple onchange="addBatchImages(event.target.files)" hidden />
         </div>
+        <input type="file" id="conv-img-input" accept="image/*" multiple onchange="addBatchImages(event.target.files)" hidden />
 
         <div class="grid-3" style="margin-top:12px;">
           <div>
@@ -298,7 +676,7 @@
               <option value="jpeg">JPG / JPEG (Compatibilità universale)</option>
               <option value="avif">AVIF (Ultra compresso)</option>
               <option value="ico">ICO (Vera Icona Windows / Favicon)</option>
-              <option value="bmp">BMP (Bitmap non compresso)</option>
+              <option value="bmp">BMP (Bitmap 24-bit reale)</option>
               <option value="svg">SVG (Incapsulamento Vettoriale)</option>
               <option value="base64">Base64 (.txt con stringa Data URI)</option>
             </select>
@@ -383,10 +761,9 @@
         <div id="audio-output-box" style="margin-top:12px;"></div>
       </div>
 
-      <!-- Sotto-pannello Video: Cattura Frame HD o Converti in WebM -->
       <div class="panel">
-        <h2>🎬 Strumenti Video: Estrai Fotogrammi HD (PNG/JPG/WEBP) o Converti in WebM</h2>
-        <p class="desc">Carica un video per catturare istantaneamente qualsiasi fotogramma in alta definizione o ricodificarlo in formato WebM.</p>
+        <h2>🎬 Strumenti Video: Estrai Fotogrammi HD (PNG/JPG/WEBP) o Converti Clip</h2>
+        <p class="desc">Carica un video per catturare istantaneamente qualsiasi fotogramma in alta definizione o registrare una clip in WebM/MP4.</p>
         <input type="file" id="video-tool-input" accept="video/*" onchange="loadVideoForTools(event)" />
         <div id="video-workspace" hidden style="margin-top:14px;">
           <video id="video-preview" controls style="width:100%;max-height:340px;background:#000;border-radius:10px;"></video>
@@ -402,7 +779,7 @@
           </div>
           <div class="btn-row">
             <button class="btn success" onclick="captureVideoFrame()">📸 Cattura e Scarica Fotogramma Attuale</button>
-            <button class="btn primary" onclick="recordVideoToWebm()">🎥 Ricodifica Clip in .WEBM (5 sec dal punto attuale)</button>
+            <button class="btn primary" onclick="recordVideoToWebm()">🎥 Ricodifica Clip (5 sec dal punto attuale)</button>
           </div>
         </div>
       </div>
@@ -412,13 +789,13 @@
     <section id="sec-data" hidden>
       <div class="panel">
         <h2>📊 Convertitore Universale Dati, Tabelle &amp; Fogli Excel</h2>
-        <p class="desc">Converti istantaneamente tra <strong>JSON, CSV, TSV, Excel (.XLSX), XML, YAML, SQL (INSERT), Tabella HTML e Tabella Markdown</strong>.</p>
+        <p class="desc">Converti istantaneamente tra <strong>JSON, CSV (con virgola o punto e virgola), TSV, Excel (.XLSX), XML, YAML, SQL (INSERT), Tabella HTML e Markdown</strong>.</p>
         <div class="format-pills">
           <span class="pill">JSON</span>
           <span class="pill">CSV / TSV</span>
           <span class="pill">XLSX (Excel)</span>
           <span class="pill">XML</span>
-          <span class="pill">YAML</span>
+          <span class="pill">YAML (.yaml / .yml)</span>
           <span class="pill">SQL INSERT</span>
           <span class="pill">Markdown Table</span>
           <span class="pill">HTML Table</span>
@@ -434,7 +811,7 @@
             <select id="data-in-fmt">
               <option value="auto" selected>Rileva Automaticamente</option>
               <option value="json">JSON</option>
-              <option value="csv">CSV (Separato da virgola/punto e virgola)</option>
+              <option value="csv">CSV (Virgola o Punto e virgola)</option>
               <option value="tsv">TSV (Separato da Tab)</option>
               <option value="yaml">YAML</option>
               <option value="xml">XML</option>
@@ -481,7 +858,7 @@
     <section id="sec-docs" hidden>
       <div class="panel">
         <h2>📝 Convertitore Documenti: Markdown ↔ HTML ↔ TXT ↔ PDF</h2>
-        <p class="desc">Scrivi o carica un file Markdown / HTML / Testo e convertilo istantaneamente con anteprima live.</p>
+        <p class="desc">Scrivi o carica un file Markdown / HTML / Testo e convertilo istantaneamente.</p>
 
         <div class="grid-3">
           <div>
@@ -561,7 +938,6 @@
 
     <!-- ==================== TAB 9: UNITÀ DI MISURA, COLORI, QR CODE & DEV TOOLS ==================== -->
     <section id="sec-units" hidden>
-      <!-- Sotto-pannello A: Unità di Misura -->
       <div class="panel">
         <h2>📐 Convertitore Unità di Misura Fisiche &amp; Digitali</h2>
         <div class="grid-3">
@@ -600,7 +976,6 @@
         </div>
       </div>
 
-      <!-- Sotto-pannello B: QR Code Generator (PNG / SVG) -->
       <div class="panel">
         <h2>📱 Generatore QR Code Offline (Output PNG &amp; SVG)</h2>
         <div class="grid-2">
@@ -618,7 +993,6 @@
         </div>
       </div>
 
-      <!-- Sotto-pannello C: Colori & Codifiche Dev -->
       <div class="panel">
         <h2>🎨 Convertitore Colori (HEX ↔ RGB ↔ HSL ↔ CMYK) &amp; Codifiche Dev</h2>
         <div class="grid-3">
@@ -644,7 +1018,7 @@
         <div class="grid-3">
           <div>
             <label>Strumento di Codifica / Hash</label>
-            <select id="dev-mode">
+            <select id="dev-mode" onchange="runDevEncoding()">
               <option value="b64enc">Testo → Base64 Encode</option>
               <option value="b64dec">Base64 → Testo Decode</option>
               <option value="urlenc">URL Encode</option>
@@ -667,7 +1041,6 @@
     </section>
   </main>
 
-  <!-- ==================== MODALE CRONOLOGIA CONVERSIONI ==================== -->
   <div id="history-modal" class="modal-backdrop" hidden onclick="if(event.target===this)toggleHistoryModal()">
     <div class="modal">
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -685,9 +1058,972 @@
   <div id="toast-container" class="toast-container"></div>
 
   <footer>
-    ConverterOffline Pro v3.0 — 100% Client-Side &amp; Privacy-First (Nessun file viene mai inviato a server esterni). Pronto per GitHub Pages.
+    ConverterOffline Pro v3.1 — 100% Client-Side &amp; Privacy-First (Nessun file viene mai inviato a server esterni). Pronto per GitHub Pages.
   </footer>
 
-  <script src="./js/app.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    let uidCounter = 1;
+    let imageQueue = [];
+    let pdfQueue = [];
+    let splitFileBytes = null;
+    let splitTotalPages = 0;
+    let pdfRenderedPages = [];
+    let batchImageQueue = [];
+    let convertedBatchImages = [];
+    let zipCreatorQueue = [];
+    let extractedZipEntries = [];
+    let currentAudioFile = null;
+
+    function formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '0 KB';
+      return bytes >= 1048576
+        ? (bytes / 1048576).toFixed(2) + ' MB'
+        : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+    }
+
+    function showToast(msg) {
+      const wrap = document.getElementById('toast-container');
+      if (!wrap) return;
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = msg;
+      wrap.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2500);
+      return blob.size;
+    }
+
+    function downloadPdfBytes(bytes, filename) {
+      const name = filename.toLowerCase().endsWith('.pdf') ? filename : filename + '.pdf';
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const size = downloadBlob(blob, name);
+      addHistoryEntry('PDF Studio', name, size);
+      showToast('PDF scaricato: ' + name);
+      return size;
+    }
+
+    function copyTextById(id) {
+      const el = document.getElementById(id);
+      if (!el || !el.value) return showToast('Nessun testo da copiare');
+      navigator.clipboard.writeText(el.value).then(() => showToast('Copiato negli appunti!'));
+    }
+
+    function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('dragover'); }
+    function handleDragLeave(e) { e.currentTarget.classList.remove('dragover'); }
+    function handleDrop(e, callback) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files.length > 0) callback(e.dataTransfer.files);
+    }
+
+    function initThemeAndNetwork() {
+      const savedTheme = localStorage.getItem('co_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      updateThemeButton(savedTheme);
+      const updateNet = () => {
+        const badge = document.getElementById('net-badge');
+        if (!badge) return;
+        badge.textContent = navigator.onLine ? '🟢 100% Offline Ready' : '⚡ Modalità Offline Attiva';
+        badge.classList.toggle('offline-mode', !navigator.onLine);
+      };
+      window.addEventListener('online', updateNet);
+      window.addEventListener('offline', updateNet);
+      updateNet();
+      renderHistoryCount();
+    }
+
+    function toggleTheme() {
+      const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('co_theme', next);
+      updateThemeButton(next);
+    }
+
+    function updateThemeButton(theme) {
+      const btn = document.getElementById('theme-btn');
+      if (btn) btn.textContent = theme === 'dark' ? '☀️ Chiaro' : '🌙 Scuro';
+    }
+
+    function getHistory() {
+      try { return JSON.parse(localStorage.getItem('co_history') || '[]'); } catch { return []; }
+    }
+
+    function addHistoryEntry(category, filename, sizeBytes) {
+      const list = getHistory();
+      list.unshift({ category, filename, size: formatBytes(sizeBytes), date: new Date().toLocaleString('it-IT') });
+      localStorage.setItem('co_history', JSON.stringify(list.slice(0, 35)));
+      renderHistoryCount();
+    }
+
+    function renderHistoryCount() {
+      const el = document.getElementById('hist-count');
+      if (el) el.textContent = getHistory().length;
+    }
+
+    function toggleHistoryModal() {
+      const modal = document.getElementById('history-modal');
+      modal.hidden = !modal.hidden;
+      if (!modal.hidden) {
+        const list = getHistory();
+        const wrap = document.getElementById('history-list');
+        wrap.innerHTML = list.length === 0
+          ? '<p style="color:var(--muted)">Nessuna conversione recente.</p>'
+          : list.map((h) => `<div class="item-card"><div><strong>${h.filename}</strong> <span class="pill">${h.category}</span><br/><small style="color:var(--muted)">${h.date} • ${h.size}</small></div></div>`).join('');
+      }
+    }
+
+    function clearHistory() {
+      localStorage.removeItem('co_history');
+      renderHistoryCount();
+      toggleHistoryModal();
+      showToast('Cronologia cancellata');
+    }
+
+    const ALL_TABS = ['img2pdf', 'pdfstudio', 'sign', 'imgconv', 'media', 'data', 'docs', 'zip', 'units'];
+    function switchTab(tab) {
+      ALL_TABS.forEach((t) => {
+        const sec = document.getElementById('sec-' + t);
+        const btn = document.getElementById('t-' + t);
+        if (sec) sec.hidden = (t !== tab);
+        if (btn) btn.classList.toggle('active', t === tab);
+      });
+    }
+
+    // 1. FOTO -> PDF
+    function addImages(e) { addImagesFromFiles(e.target.files); e.target.value = ''; }
+    function addImagesFromFiles(fileList) {
+      Array.from(fileList || []).forEach((file) => {
+        if (!file.type.startsWith('image/')) return;
+        imageQueue.push({ id: uidCounter++, file, url: URL.createObjectURL(file), size: file.size });
+      });
+      renderImageThumbs();
+    }
+
+    function moveImageInPdfQueue(idx, dir) {
+      const target = idx + dir;
+      if (target < 0 || target >= imageQueue.length) return;
+      const tmp = imageQueue[idx];
+      imageQueue[idx] = imageQueue[target];
+      imageQueue[target] = tmp;
+      renderImageThumbs();
+    }
+
+    function removeImage(id) { imageQueue = imageQueue.filter((x) => x.id !== id); renderImageThumbs(); }
+    function clearImages() { imageQueue = []; renderImageThumbs(); document.getElementById('img2pdf-status').innerHTML = ''; }
+
+    function renderImageThumbs() {
+      const wrap = document.getElementById('img-thumbs');
+      wrap.innerHTML = imageQueue.map((item, idx) => `
+        <div class="thumb-box">
+          <img src="${item.url}" alt="Pag ${idx + 1}" />
+          <div style="font-size:0.75rem;margin-top:4px;font-weight:600;">Pag. ${idx + 1} (${formatBytes(item.size)})</div>
+          <div style="display:flex;justify-content:center;gap:4px;margin-top:4px;">
+            <button class="btn small secondary" onclick="moveImageInPdfQueue(${idx}, -1)">⬅️</button>
+            <button class="btn small secondary" onclick="moveImageInPdfQueue(${idx}, 1)">➡️</button>
+            <button class="btn small danger" onclick="removeImage(${item.id})">✕</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function processImageToJpegBytes(url, quality, colorMode) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 2000;
+          let w = img.naturalWidth || 800, h = img.naturalHeight || 600;
+          if (w > maxDim || h > maxDim) {
+            const s = maxDim / Math.max(w, h);
+            w = Math.round(w * s); h = Math.round(h * s);
+          }
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+
+          if (colorMode !== 'color') {
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+              const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+              if (colorMode === 'bw') {
+                const v = g > 142 ? 255 : Math.max(0, g * 0.5);
+                d[i] = d[i + 1] = d[i + 2] = v;
+              } else if (colorMode === 'gray') {
+                d[i] = d[i + 1] = d[i + 2] = g;
+              } else if (colorMode === 'contrast') {
+                const f = 1.35;
+                d[i] = Math.min(255, Math.max(0, f * (d[i] - 128) + 128));
+                d[i + 1] = Math.min(255, Math.max(0, f * (d[i + 1] - 128) + 128));
+                d[i + 2] = Math.min(255, Math.max(0, f * (d[i + 2] - 128) + 128));
+              }
+            }
+            ctx.putImageData(imgData, 0, 0);
+          }
+          c.toBlob(async (blob) => {
+            resolve({ bytes: new Uint8Array(await blob.arrayBuffer()), width: w, height: h });
+          }, 'image/jpeg', quality);
+        };
+        img.src = url;
+      });
+    }
+
+    async function generatePdfFromImages() {
+      if (imageQueue.length === 0) return showToast('Seleziona almeno una foto!');
+      const { PDFDocument } = window.PDFLib;
+      const quality = parseFloat(document.getElementById('img-quality').value);
+      const colorMode = document.getElementById('img-color').value;
+      const pageSizeMode = document.getElementById('img-pagesize').value;
+      const margin = parseInt(document.getElementById('img-margin').value, 10) || 0;
+      const outName = document.getElementById('img-pdf-name').value.trim() || 'immagini.pdf';
+
+      const pdfDoc = await PDFDocument.create();
+      const origSize = imageQueue.reduce((a, b) => a + b.size, 0);
+
+      for (const item of imageQueue) {
+        const { bytes, width, height } = await processImageToJpegBytes(item.url, quality, colorMode);
+        const jpgImage = await pdfDoc.embedJpg(bytes);
+        let pageW = 595.28, pageH = 841.89;
+        if (pageSizeMode === 'a4-l') { pageW = 841.89; pageH = 595.28; }
+        else if (pageSizeMode === 'letter') { pageW = 612; pageH = 792; }
+        else if (pageSizeMode === 'fit') { pageW = width + margin * 2; pageH = height + margin * 2; }
+
+        const page = pdfDoc.addPage([pageW, pageH]);
+        const scale = Math.min((pageW - margin * 2) / width, (pageH - margin * 2) / height);
+        const drawW = width * scale, drawH = height * scale;
+        page.drawImage(jpgImage, { x: (pageW - drawW) / 2, y: (pageH - drawH) / 2, width: drawW, height: drawH });
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const finalSize = downloadPdfBytes(pdfBytes, outName);
+      document.getElementById('img2pdf-status').innerHTML = `<div class="item-card"><div>✅ <strong>PDF creato e scaricato!</strong> (${formatBytes(origSize)} → <strong>${formatBytes(finalSize)}</strong>)</div></div>`;
+    }
+
+    // 2. STUDIO PDF
+    async function addPdfToMerge(e) {
+      for (const f of Array.from(e.target.files || [])) {
+        pdfQueue.push({ id: uidCounter++, name: f.name, size: f.size, bytes: await f.arrayBuffer() });
+      }
+      e.target.value = '';
+      renderMergeList();
+    }
+
+    function movePdf(idx, dir) {
+      const target = idx + dir;
+      if (target < 0 || target >= pdfQueue.length) return;
+      const tmp = pdfQueue[idx]; pdfQueue[idx] = pdfQueue[target]; pdfQueue[target] = tmp;
+      renderMergeList();
+    }
+
+    function removePdf(id) { pdfQueue = pdfQueue.filter((p) => p.id !== id); renderMergeList(); }
+
+    function renderMergeList() {
+      const wrap = document.getElementById('merge-list');
+      wrap.innerHTML = pdfQueue.length === 0
+        ? '<p style="color:var(--muted)">Nessun PDF in coda.</p>'
+        : pdfQueue.map((p, i) => `
+          <div class="item-card">
+            <div><strong>${i + 1}. ${p.name}</strong> <small>(${formatBytes(p.size)})</small></div>
+            <div>
+              <button class="btn small secondary" onclick="movePdf(${i}, -1)">⬆️</button>
+              <button class="btn small secondary" onclick="movePdf(${i}, 1)">⬇️</button>
+              <button class="btn small danger" onclick="removePdf(${p.id})">🗑️</button>
+            </div>
+          </div>`).join('');
+    }
+
+    async function mergeAllPdfs() {
+      if (pdfQueue.length < 2) return showToast('Aggiungi almeno 2 file PDF!');
+      const { PDFDocument } = window.PDFLib;
+      const mergedPdf = await PDFDocument.create();
+      for (const item of pdfQueue) {
+        const srcDoc = await PDFDocument.load(item.bytes);
+        const copied = await mergedPdf.copyPages(srcDoc, srcDoc.getPageIndices());
+        copied.forEach((p) => mergedPdf.addPage(p));
+      }
+      downloadPdfBytes(await mergedPdf.save(), document.getElementById('merge-name').value.trim() || 'unito.pdf');
+    }
+
+    async function inspectPdfForSplit(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      splitFileBytes = await f.arrayBuffer();
+      const doc = await window.PDFLib.PDFDocument.load(splitFileBytes);
+      splitTotalPages = doc.getPageCount();
+      document.getElementById('split-info').textContent = `📄 ${f.name} (${splitTotalPages} pagine, ${formatBytes(f.size)})`;
+    }
+
+    function parsePageRanges(str, maxPages) {
+      if (!str.trim()) return Array.from({ length: maxPages }, (_, i) => i);
+      const indices = [];
+      str.split(',').forEach((part) => {
+        const p = part.trim();
+        if (p.includes('-')) {
+          const [s, e] = p.split('-').map((n) => parseInt(n, 10));
+          for (let i = s; i <= e; i++) if (i >= 1 && i <= maxPages) indices.push(i - 1);
+        } else {
+          const n = parseInt(p, 10);
+          if (n >= 1 && n <= maxPages) indices.push(n - 1);
+        }
+      });
+      return indices;
+    }
+
+    async function processSplitRotate() {
+      if (!splitFileBytes) return showToast('Carica prima un file PDF!');
+      const { PDFDocument, degrees } = window.PDFLib;
+      const srcDoc = await PDFDocument.load(splitFileBytes);
+      const newDoc = await PDFDocument.create();
+      const rotAngle = parseInt(document.getElementById('split-rot').value, 10);
+      const pageIndices = parsePageRanges(document.getElementById('split-pages').value, srcDoc.getPageCount());
+      if (pageIndices.length === 0) return showToast('Nessuna pagina valida selezionata.');
+
+      const copied = await newDoc.copyPages(srcDoc, pageIndices);
+      copied.forEach((page) => {
+        if (rotAngle !== 0) page.setRotation(degrees((page.getRotation().angle + rotAngle) % 360));
+        newDoc.addPage(page);
+      });
+      downloadPdfBytes(await newDoc.save(), document.getElementById('split-out-name').value.trim() || 'pdf-elaborato.pdf');
+    }
+
+    async function convertPdfToImagesOrText() {
+      const input = document.getElementById('pdf2img-input');
+      if (!input.files[0] || !window.pdfjsLib) return showToast('Seleziona un file PDF!');
+      const file = input.files[0];
+      const format = document.getElementById('pdf2img-format').value;
+      const scale = parseFloat(document.getElementById('pdf2img-scale').value) || 2.0;
+      const wrap = document.getElementById('pdf2img-output');
+      wrap.innerHTML = '<p style="color:var(--accent)">Elaborazione in corso...</p>';
+      pdfRenderedPages = [];
+
+      const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      if (format === 'txt' || format === 'md') {
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map((it) => it.str).join(' ');
+          fullText += format === 'md' ? `## Pagina ${i}\n\n${strings}\n\n---\n\n` : `=== PAGINA ${i} ===\n${strings}\n\n`;
+        }
+        const outName = file.name.replace(/\.pdf$/i, '') + (format === 'md' ? '.md' : '.txt');
+        const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+        downloadBlob(blob, outName);
+        addHistoryEntry('PDF → Testo', outName, blob.size);
+        wrap.innerHTML = `<div class="item-card" style="grid-column:1/-1;">✅ Testo estratto in <strong>${outName}</strong>!</div>`;
+        return;
+      }
+
+      const ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }[format] || 'png';
+      wrap.innerHTML = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const vp = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        const blob = await new Promise((r) => canvas.toBlob(r, format, 0.9));
+        const url = URL.createObjectURL(blob);
+        const filename = `${file.name.replace(/\.pdf$/i, '')}_pag_${i}.${ext}`;
+        pdfRenderedPages.push({ filename, blob, url });
+        wrap.innerHTML += `<div class="thumb-box"><img src="${url}"/><div style="font-size:0.75rem;margin-top:4px;">Pag. ${i}</div><a href="${url}" download="${filename}" class="btn small success" style="margin-top:4px;text-decoration:none;">⬇️ .${ext.toUpperCase()}</a></div>`;
+      }
+      document.getElementById('btn-pdf2img-zip').hidden = pdfRenderedPages.length === 0;
+    }
+
+    async function downloadPdfImagesAsZip() {
+      if (pdfRenderedPages.length === 0) return;
+      const zip = new window.JSZip();
+      pdfRenderedPages.forEach((p) => zip.file(p.filename, p.blob));
+      const content = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(content, 'pagine-pdf-immagini.zip');
+    }
+
+    // 3. FIRMA & FILIGRANA PDF
+    const sigCanvas = document.getElementById('sig-pad');
+    const sigCtx = sigCanvas ? sigCanvas.getContext('2d') : null;
+    let drawing = false, hasSignature = false;
+    if (sigCtx) {
+      sigCtx.strokeStyle = '#1d4ed8'; sigCtx.lineWidth = 2.8; sigCtx.lineCap = 'round';
+      const getPos = (e) => {
+        const r = sigCanvas.getBoundingClientRect();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: (cx - r.left) * (sigCanvas.width / r.width), y: (cy - r.top) * (sigCanvas.height / r.height) };
+      };
+      sigCanvas.addEventListener('pointerdown', (e) => { drawing = true; hasSignature = true; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); });
+      sigCanvas.addEventListener('pointermove', (e) => { if (!drawing) return; const p = getPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); });
+      window.addEventListener('pointerup', () => { drawing = false; });
+    }
+    function updateSignatureColor() { if (sigCtx) sigCtx.strokeStyle = document.getElementById('sign-color').value; }
+    function clearSignaturePad() { if (sigCtx) { sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); hasSignature = false; } }
+    function loadStampIntoCanvas(e) {
+      const f = e.target.files[0]; if (!f) return;
+      const img = new Image();
+      img.onload = () => {
+        clearSignaturePad();
+        const s = Math.min(sigCanvas.width / img.width, sigCanvas.height / img.height) * 0.85;
+        sigCtx.drawImage(img, (sigCanvas.width - img.width * s) / 2, (sigCanvas.height - img.height * s) / 2, img.width * s, img.height * s);
+        hasSignature = true;
+      };
+      img.src = URL.createObjectURL(f);
+    }
+
+    async function signPdfDocument() {
+      const f = document.getElementById('sign-pdf-input').files[0];
+      if (!f) return showToast('Carica il PDF da firmare!');
+      const text = document.getElementById('sign-text').value.trim();
+      const watermark = document.getElementById('sign-watermark').value.trim();
+      if (!hasSignature && !text && !watermark) return showToast('Inserisci firma, testo o filigrana!');
+
+      const { PDFDocument, rgb, degrees, StandardFonts } = window.PDFLib;
+      const pdfDoc = await PDFDocument.load(await f.arrayBuffer());
+      const pages = pdfDoc.getPages();
+      const posMode = document.getElementById('sign-page-pos').value;
+      const corner = document.getElementById('sign-corner').value;
+      const targetPages = posMode === 'last' ? [pages[pages.length - 1]] : (posMode === 'first' ? [pages[0]] : pages);
+      const pngImage = hasSignature ? await pdfDoc.embedPng(sigCanvas.toDataURL('image/png')) : null;
+      const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+      if (watermark) {
+        pages.forEach((p) => {
+          const { width, height } = p.getSize();
+          p.drawText(watermark, { x: width * 0.18, y: height * 0.35, size: 38, font, color: rgb(0.75, 0.75, 0.8), rotate: degrees(35), opacity: 0.28 });
+        });
+      }
+      targetPages.forEach((page) => {
+        const { width, height } = page.getSize();
+        const sigW = 155, sigH = 52;
+        let x = corner === 'bl' ? 35 : (corner === 'bc' ? (width - sigW) / 2 : width - sigW - 35);
+        let y = corner === 'tr' ? height - sigH - 45 : 42;
+        if (pngImage) page.drawImage(pngImage, { x, y, width: sigW, height: sigH });
+        if (text) page.drawText(text, { x, y: y - 14, size: 9.5, font, color: rgb(0.1, 0.15, 0.3) });
+      });
+      downloadPdfBytes(await pdfDoc.save(), 'firmato-' + f.name);
+    }
+
+    // 4. CONVERTITORE IMMAGINI UNIVERSALE
+    function addBatchImages(fileList) {
+      Array.from(fileList || []).forEach((f) => {
+        if (f.type.startsWith('image/')) batchImageQueue.push({ id: uidCounter++, file: f, name: f.name, size: f.size });
+      });
+      renderBatchImageList();
+    }
+    function clearBatchImages() { batchImageQueue = []; convertedBatchImages = []; document.getElementById('btn-img-zip').hidden = true; renderBatchImageList(); }
+    function renderBatchImageList() {
+      document.getElementById('conv-img-list').innerHTML = batchImageQueue.map((item) => `
+        <div class="item-card">
+          <div>🖼️ <strong>${item.name}</strong> <small>(${formatBytes(item.size)})</small></div>
+          <div id="status-${item.id}"><span class="pill">In attesa</span></div>
+        </div>`).join('');
+    }
+
+    async function canvasToIcoBlob(sourceCanvas) {
+      const icoSize = 64, c = document.createElement('canvas');
+      c.width = icoSize; c.height = icoSize;
+      c.getContext('2d').drawImage(sourceCanvas, 0, 0, icoSize, icoSize);
+      const pngBlob = await new Promise((r) => c.toBlob(r, 'image/png'));
+      const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
+      const total = new Uint8Array(22 + pngBytes.length);
+      const view = new DataView(total.buffer);
+      view.setUint16(0, 0, true); view.setUint16(2, 1, true); view.setUint16(4, 1, true);
+      total[6] = icoSize; total[7] = icoSize;
+      view.setUint16(10, 1, true); view.setUint16(12, 32, true);
+      view.setUint32(14, pngBytes.length, true); view.setUint32(18, 22, true);
+      total.set(pngBytes, 22);
+      return new Blob([total], { type: 'image/x-icon' });
+    }
+
+    function canvasToBmpBlob(canvas) {
+      const w = canvas.width, h = canvas.height;
+      const imgData = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+      const rowSize = Math.floor((24 * w + 31) / 32) * 4;
+      const pixelArraySize = rowSize * h, fileSize = 54 + pixelArraySize;
+      const buf = new ArrayBuffer(fileSize), view = new DataView(buf);
+      view.setUint8(0, 0x42); view.setUint8(1, 0x4D);
+      view.setUint32(2, fileSize, true); view.setUint32(10, 54, true);
+      view.setUint32(14, 40, true); view.setInt32(18, w, true); view.setInt32(22, -h, true);
+      view.setUint16(26, 1, true); view.setUint16(28, 24, true);
+      view.setUint32(34, pixelArraySize, true);
+      const bytes = new Uint8Array(buf);
+      for (let y = 0; y < h; y++) {
+        let off = 54 + y * rowSize;
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          bytes[off++] = imgData[idx + 2]; bytes[off++] = imgData[idx + 1]; bytes[off++] = imgData[idx];
+        }
+      }
+      return new Blob([buf], { type: 'image/bmp' });
+    }
+
+    async function runBatchImageConversion() {
+      if (batchImageQueue.length === 0) return showToast('Aggiungi almeno un’immagine!');
+      const fmt = document.getElementById('conv-img-format').value;
+      const quality = parseInt(document.getElementById('conv-img-quality').value, 10) / 100;
+      const maxW = parseInt(document.getElementById('conv-img-maxw').value, 10) || 0;
+      convertedBatchImages = [];
+
+      for (const item of batchImageQueue) {
+        const img = new Image(), url = URL.createObjectURL(item.file);
+        await new Promise((res) => { img.onload = res; img.src = url; });
+        let w = img.naturalWidth || 512, h = img.naturalHeight || 512;
+        if (maxW > 0 && w > maxW) { h = Math.round(h * (maxW / w)); w = maxW; }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (fmt === 'jpeg' || fmt === 'bmp') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); }
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+
+        const baseName = item.name.replace(/\.[^/.]+$/, '');
+        let outBlob = null, outExt = fmt;
+        if (fmt === 'ico') outBlob = await canvasToIcoBlob(canvas);
+        else if (fmt === 'bmp') outBlob = canvasToBmpBlob(canvas);
+        else if (fmt === 'svg') {
+          const d = canvas.toDataURL('image/png');
+          outBlob = new Blob([`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><image href="${d}" width="${w}" height="${h}"/></svg>`], { type: 'image/svg+xml' });
+        } else if (fmt === 'base64') {
+          outBlob = new Blob([canvas.toDataURL('image/webp', quality)], { type: 'text/plain' });
+          outExt = 'base64.txt';
+        } else {
+          outBlob = await new Promise((r) => canvas.toBlob(r, `image/${fmt}`, quality));
+          if (fmt === 'avif' && outBlob && outBlob.type !== 'image/avif') {
+            showToast('AVIF non supportato dal browser: usato WebP.');
+            outBlob = await new Promise((r) => canvas.toBlob(r, 'image/webp', quality));
+            outExt = 'webp';
+          }
+          if (fmt === 'jpeg') outExt = 'jpg';
+        }
+        const outName = `${baseName}.${outExt}`, outUrl = URL.createObjectURL(outBlob);
+        convertedBatchImages.push({ name: outName, blob: outBlob, url: outUrl });
+        const statusEl = document.getElementById(`status-${item.id}`);
+        if (statusEl) statusEl.innerHTML = `<a href="${outUrl}" download="${outName}" class="btn small success" style="text-decoration:none;">⬇️ ${outName} (${formatBytes(outBlob.size)})</a>`;
+        if (batchImageQueue.length === 1) { downloadBlob(outBlob, outName); addHistoryEntry('Immagini', outName, outBlob.size); }
+      }
+      document.getElementById('btn-img-zip').hidden = convertedBatchImages.length < 2;
+    }
+
+    async function downloadConvertedImagesZip() {
+      const zip = new window.JSZip();
+      convertedBatchImages.forEach((f) => zip.file(f.name, f.blob));
+      downloadBlob(await zip.generateAsync({ type: 'blob' }), 'immagini-convertite.zip');
+    }
+
+    // 5. AUDIO & VIDEO
+    function inspectAudioFile(e) {
+      const f = e.target.files[0]; if (!f) return;
+      currentAudioFile = f;
+      document.getElementById('audio-info').textContent = `🎵 ${f.name} (${formatBytes(f.size)}) pronto.`;
+    }
+
+    function encodeAudioBufferToWav(audioBuffer, bitDepth = 16) {
+      const numCh = audioBuffer.numberOfChannels, rate = audioBuffer.sampleRate;
+      const bps = bitDepth === 24 ? 3 : 2, frames = audioBuffer.length, dataSize = frames * numCh * bps;
+      const buf = new ArrayBuffer(44 + dataSize), view = new DataView(buf);
+      const wStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+      wStr(0, 'RIFF'); view.setUint32(4, 36 + dataSize, true); wStr(8, 'WAVE'); wStr(12, 'fmt ');
+      view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, numCh, true);
+      view.setUint32(24, rate, true); view.setUint32(28, rate * numCh * bps, true);
+      view.setUint16(32, numCh * bps, true); view.setUint16(34, bitDepth, true);
+      wStr(36, 'data'); view.setUint32(40, dataSize, true);
+      const chs = Array.from({ length: numCh }, (_, c) => audioBuffer.getChannelData(c));
+      let off = 44;
+      for (let i = 0; i < frames; i++) {
+        for (let c = 0; c < numCh; c++) {
+          const s = Math.max(-1, Math.min(1, chs[c][i]));
+          if (bitDepth === 24) {
+            const v = Math.floor(s < 0 ? s * 0x800000 : s * 0x7FFFFF);
+            view.setUint8(off, v & 0xFF); view.setUint8(off + 1, (v >> 8) & 0xFF); view.setUint8(off + 2, (v >> 16) & 0xFF); off += 3;
+          } else { view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true); off += 2; }
+        }
+      }
+      return new Blob([buf], { type: 'audio/wav' });
+    }
+
+    function encodeAudioBufferToMp3(audioBuffer, kbps = 192) {
+      const numCh = audioBuffer.numberOfChannels, rate = audioBuffer.sampleRate;
+      const mp3enc = new window.lamejs.Mp3Encoder(numCh, rate, kbps), mp3Data = [];
+      const to16 = (arr) => {
+        const out = new Int16Array(arr.length);
+        for (let i = 0; i < arr.length; i++) { const s = Math.max(-1, Math.min(1, arr[i])); out[i] = s < 0 ? s * 0x8000 : s * 0x7FFF; }
+        return out;
+      };
+      const left = to16(audioBuffer.getChannelData(0)), right = numCh > 1 ? to16(audioBuffer.getChannelData(1)) : left;
+      for (let i = 0; i < left.length; i += 1152) {
+        const b = numCh === 1 ? mp3enc.encodeBuffer(left.subarray(i, i + 1152)) : mp3enc.encodeBuffer(left.subarray(i, i + 1152), right.subarray(i, i + 1152));
+        if (b.length > 0) mp3Data.push(b);
+      }
+      const end = mp3enc.flush(); if (end.length > 0) mp3Data.push(end);
+      return new Blob(mp3Data, { type: 'audio/mpeg' });
+    }
+
+    async function convertAudioTrack() {
+      if (!currentAudioFile) return showToast('Seleziona un file Audio o Video!');
+      const outFormat = document.getElementById('audio-out-format').value;
+      const targetRate = parseInt(document.getElementById('audio-samplerate').value, 10) || 44100;
+      const targetCh = parseInt(document.getElementById('audio-channels').value, 10) || 2;
+      const trimStart = parseFloat(document.getElementById('audio-trim-start').value) || 0;
+      const trimEnd = parseFloat(document.getElementById('audio-trim-end').value) || 0;
+      document.getElementById('audio-progress-wrap').hidden = false;
+      const progBar = document.getElementById('audio-progress-bar'); progBar.style.width = '35%';
+
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const decoded = await audioCtx.decodeAudioData(await currentAudioFile.arrayBuffer());
+        const sSec = Math.min(trimStart, decoded.duration);
+        const eSec = (trimEnd > sSec && trimEnd <= decoded.duration) ? trimEnd : decoded.duration;
+        const dur = Math.max(0.1, eSec - sSec);
+        const offlineCtx = new OfflineAudioContext(targetCh, Math.ceil(dur * targetRate), targetRate);
+        const src = offlineCtx.createBufferSource(); src.buffer = decoded; src.connect(offlineCtx.destination); src.start(0, sSec, dur);
+        const rendered = await offlineCtx.startRendering();
+        const base = currentAudioFile.name.replace(/\.[^/.]+$/, '');
+        let outBlob, outName;
+        if (outFormat.startsWith('mp3')) {
+          const kbps = parseInt(outFormat.split('-')[1], 10) || 192;
+          outBlob = encodeAudioBufferToMp3(rendered, kbps); outName = `${base}-${kbps}kbps.mp3`;
+        } else {
+          const bits = outFormat === 'wav-24' ? 24 : 16;
+          outBlob = encodeAudioBufferToWav(rendered, bits); outName = `${base}-${bits}bit.wav`;
+        }
+        progBar.style.width = '100%';
+        downloadBlob(outBlob, outName);
+        addHistoryEntry('Audio', outName, outBlob.size);
+        document.getElementById('audio-output-box').innerHTML = `<div class="item-card"><div>✅ <strong>${outName}</strong></div><audio controls src="${URL.createObjectURL(outBlob)}" style="height:36px;"></audio></div>`;
+      } catch (err) { showToast('Errore audio: ' + err.message); }
+    }
+
+    function loadVideoForTools(e) {
+      const f = e.target.files[0]; if (!f) return;
+      document.getElementById('video-preview').src = URL.createObjectURL(f);
+      document.getElementById('video-workspace').hidden = false;
+    }
+
+    function captureVideoFrame() {
+      const v = document.getElementById('video-preview');
+      if (!v.videoWidth) return showToast('Avvia prima il video!');
+      const fmt = document.getElementById('video-frame-fmt').value;
+      const ext = fmt.split('/')[1] === 'jpeg' ? 'jpg' : fmt.split('/')[1];
+      const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob((blob) => downloadBlob(blob, `frame-${Math.round(v.currentTime)}s.${ext}`), fmt, 0.92);
+    }
+
+    function recordVideoToWebm() {
+      const v = document.getElementById('video-preview');
+      if (!v.captureStream && !v.mozCaptureStream) return showToast('captureStream non supportato.');
+      const stream = v.captureStream ? v.captureStream() : v.mozCaptureStream();
+      const candidates = ['video/webm;codecs=vp9', 'video/webm', 'video/mp4'];
+      const mimeType = candidates.find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+      const chunks = [], rec = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      rec.onstop = () => downloadBlob(new Blob(chunks, { type: mimeType || 'video/webm' }), `clip.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`);
+      if (v.ended) v.currentTime = 0;
+      v.play(); rec.start();
+      showToast('Registrazione 5 sec avviata...');
+      setTimeout(() => { if (rec.state === 'recording') rec.stop(); v.pause(); }, 5000);
+    }
+
+    // 6. DATI, CSV, JSON, EXCEL
+    async function loadDataFile(e) {
+      const f = e.target.files[0]; if (!f) return;
+      let ext = f.name.split('.').pop().toLowerCase();
+      if (ext === 'yml') ext = 'yaml';
+      if ((ext === 'xlsx' || ext === 'xls') && window.XLSX) {
+        const wb = window.XLSX.read(await f.arrayBuffer(), { type: 'array' });
+        const json = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        document.getElementById('data-input-text').value = JSON.stringify(json, null, 2);
+        document.getElementById('data-in-fmt').value = 'json';
+        return showToast('Excel caricato!');
+      }
+      document.getElementById('data-input-text').value = await f.text();
+      if (['json', 'csv', 'tsv', 'yaml', 'xml'].includes(ext)) document.getElementById('data-in-fmt').value = ext;
+    }
+
+    function parseInputDataToObjects(rawText, fmt) {
+      const text = rawText.trim(); if (!text) return [];
+      if (fmt === 'auto') {
+        if (text.startsWith('[') || text.startsWith('{')) fmt = 'json';
+        else if (text.startsWith('<')) fmt = 'xml';
+        else if (/^\s*-\s+\w+\s*:/m.test(text)) fmt = 'yaml';
+        else if (text.includes('\t') && !text.includes(',') && !text.includes(';')) fmt = 'tsv';
+        else fmt = 'csv';
+      }
+      if (fmt === 'json') { const p = JSON.parse(text); return Array.isArray(p) ? p : [p]; }
+      if (fmt === 'csv' || fmt === 'tsv') {
+        const first = text.split('\n')[0] || '';
+        const sep = fmt === 'tsv' ? '\t' : (first.split(';').length > first.split(',').length ? ';' : ',');
+        const wb = window.XLSX.read(text, { type: 'string', FS: sep });
+        return window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      }
+      if (fmt === 'yaml') {
+        return text.split(/^\s*-\s+/m).filter((b) => b.trim()).map((b) => {
+          const obj = {};
+          b.split('\n').forEach((l) => {
+            const i = l.indexOf(':');
+            if (i > -1) obj[l.slice(0, i).trim()] = l.slice(i + 1).trim().replace(/^["']|["']$/g, '');
+          });
+          return obj;
+        });
+      }
+      if (fmt === 'xml') {
+        const doc = new DOMParser().parseFromString(text, 'text/xml');
+        return Array.from(doc.documentElement.children).map((r) => {
+          const obj = {}; Array.from(r.children).forEach((c) => { obj[c.tagName] = c.textContent; }); return obj;
+        });
+      }
+      return [];
+    }
+
+    function objectsToOutputFormat(rows, outFmt) {
+      const headers = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
+      if (outFmt === 'json') return JSON.stringify(rows, null, 2);
+      if (outFmt === 'csv' || outFmt === 'tsv') {
+        const sep = outFmt === 'tsv' ? '\t' : ',';
+        const esc = (v) => { const s = String(v ?? ''); return s.includes(sep) || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
+        return [headers.map(esc).join(sep), ...rows.map((r) => headers.map((h) => esc(r[h])).join(sep))].join('\n');
+      }
+      if (outFmt === 'yaml') return rows.map((r) => headers.map((h, i) => `${i === 0 ? '- ' : '  '}${h}: ${JSON.stringify(r[h] ?? '')}`).join('\n')).join('\n');
+      if (outFmt === 'xml') {
+        const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<?xml version="1.0" encoding="UTF-8"?>\n<dataset>\n${rows.map((r) => `  <record>\n${headers.map((h) => `    <${h}>${esc(r[h])}</${h}>`).join('\n')}\n  </record>`).join('\n')}\n</dataset>`;
+      }
+      if (outFmt === 'sql') {
+        const cols = headers.map((h) => `\`${h}\``).join(', ');
+        return rows.map((r) => `INSERT INTO \`tabella_dati\` (${cols}) VALUES (${headers.map((h) => typeof r[h] === 'number' ? r[h] : `'${String(r[h] ?? '').replace(/'/g, "''")}'`).join(', ')});`).join('\n');
+      }
+      if (outFmt === 'md') return `| ${headers.join(' | ')} |\n| ${headers.map(() => '---').join(' | ')} |\n${rows.map((r) => `| ${headers.map((h) => String(r[h] ?? '')).join(' | ')} |`).join('\n')}`;
+      if (outFmt === 'html') return `<table>\n  <thead>\n    <tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr>\n  </thead>\n  <tbody>\n${rows.map((r) => `    <tr>${headers.map((h) => `<td>${r[h] ?? ''}</td>`).join('')}</tr>`).join('\n')}\n  </tbody>\n</table>`;
+      return JSON.stringify(rows, null, 2);
+    }
+
+    function convertDataFormats() {
+      try {
+        const rows = parseInputDataToObjects(document.getElementById('data-input-text').value, document.getElementById('data-in-fmt').value);
+        if (rows.length === 0) return showToast('Inserisci dati validi!');
+        const outFmt = document.getElementById('data-out-fmt').value;
+        if (outFmt === 'xlsx' && window.XLSX) {
+          const ws = window.XLSX.utils.json_to_sheet(rows), wb = window.XLSX.utils.book_new();
+          window.XLSX.utils.book_append_sheet(wb, ws, 'Dati');
+          const blob = new Blob([window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          downloadBlob(blob, 'dati-convertiti.xlsx');
+          document.getElementById('data-output-text').value = JSON.stringify(rows, null, 2);
+          return showToast('Excel (.xlsx) scaricato!');
+        }
+        document.getElementById('data-output-text').value = objectsToOutputFormat(rows, outFmt);
+        showToast('Convertito in ' + outFmt.toUpperCase());
+      } catch (err) { showToast('Errore: ' + err.message); }
+    }
+
+    function swapDataInputOutput() {
+      const i = document.getElementById('data-input-text'), o = document.getElementById('data-output-text');
+      if (o.value) { i.value = o.value; document.getElementById('data-in-fmt').value = 'auto'; }
+    }
+
+    function downloadConvertedData() {
+      const outFmt = document.getElementById('data-out-fmt').value;
+      if (outFmt === 'xlsx') return convertDataFormats();
+      const text = document.getElementById('data-output-text').value;
+      if (!text) return showToast('Converti prima i dati!');
+      downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), `dati-convertiti.${outFmt}`);
+    }
+
+    function loadSampleData() {
+      document.getElementById('data-input-text').value = JSON.stringify([
+        { id: 101, prodotto: 'Monitor 4K Ultra', prezzo_eur: 349.90, disponibile: true },
+        { id: 102, prodotto: 'Tastiera Meccanica', prezzo_eur: 89.50, disponibile: true }
+      ], null, 2);
+      document.getElementById('data-in-fmt').value = 'json';
+      convertDataFormats();
+    }
+
+    // 7. DOCUMENTI
+    async function loadDocFile(e) {
+      const f = e.target.files[0]; if (!f) return;
+      document.getElementById('doc-input').value = await f.text();
+      document.getElementById('doc-out-name').value = f.name.replace(/\.[^/.]+$/, '');
+    }
+
+    function wrapTextByWords(text, maxChars) {
+      const words = text.split(/\s+/), lines = []; let cur = '';
+      for (const w of words) {
+        if (!cur) cur = w;
+        else if ((cur + ' ' + w).length <= maxChars) cur += ' ' + w;
+        else { lines.push(cur); cur = w; }
+      }
+      if (cur || lines.length === 0) lines.push(cur);
+      return lines;
+    }
+
+    async function convertDocument() {
+      const src = document.getElementById('doc-input').value;
+      if (!src.trim()) return showToast('Inserisci del testo!');
+      const mode = document.getElementById('doc-conv-mode').value, outEl = document.getElementById('doc-output');
+      if (mode === 'md2html') {
+        outEl.value = `<!DOCTYPE html>\n<html lang="it">\n<head><meta charset="UTF-8"><title>Documento</title></head>\n<body>\n${window.marked ? window.marked.parse(src) : src}</body>\n</html>`;
+      } else if (mode === 'md2txt' || mode === 'html2txt') {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = mode === 'md2txt' && window.marked ? window.marked.parse(src) : src;
+        outEl.value = tmp.textContent || tmp.innerText || '';
+      } else if (mode === 'html2md') {
+        outEl.value = src.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n').replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n').replace(/<(strong|b)[^>]*>(.*?)<\/\1>/gi, '**$2**').replace(/<[^>]+>/g, '').trim();
+      } else if (mode === 'txt2pdf') {
+        const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+        const pdfDoc = await PDFDocument.create(), font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const norm = src.replace(/€/g, 'EUR').replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/\r/g, '');
+        let page = pdfDoc.addPage([595.28, 841.89]), y = 795;
+        for (const rawLine of norm.split('\n')) {
+          for (const ch of wrapTextByWords(rawLine.replace(/[^\x20-\x7E\xA0-\xFF]/g, ''), 80)) {
+            if (y < 50) { page = pdfDoc.addPage([595.28, 841.89]); y = 795; }
+            page.drawText(ch, { x: 45, y, size: 11, font, color: rgb(0.1, 0.1, 0.15) }); y -= 16;
+          }
+        }
+        downloadPdfBytes(await pdfDoc.save(), (document.getElementById('doc-out-name').value.trim() || 'documento') + '.pdf');
+        outEl.value = norm;
+      }
+    }
+
+    function downloadConvertedDoc() {
+      const mode = document.getElementById('doc-conv-mode').value;
+      if (mode === 'txt2pdf') return convertDocument();
+      const out = document.getElementById('doc-output').value;
+      if (!out) return showToast('Converti prima il documento!');
+      const ext = { md2html: 'html', md2txt: 'txt', html2md: 'md', html2txt: 'txt' }[mode] || 'txt';
+      downloadBlob(new Blob([out], { type: 'text/plain;charset=utf-8' }), `${document.getElementById('doc-out-name').value.trim() || 'documento'}.${ext}`);
+    }
+
+    // 8. ARCHIVI ZIP
+    function addFilesToZipCreator(e) { Array.from(e.target.files || []).forEach((f) => zipCreatorQueue.push(f)); e.target.value = ''; renderZipCreatorList(); }
+    function renderZipCreatorList() {
+      document.getElementById('zip-create-list').innerHTML = zipCreatorQueue.map((f, i) => `<div class="item-card"><div>📄 <strong>${f.name}</strong> (${formatBytes(f.size)})</div><button class="btn small danger" onclick="zipCreatorQueue.splice(${i},1);renderZipCreatorList()">✕</button></div>`).join('');
+    }
+    async function generateZipArchive() {
+      if (zipCreatorQueue.length === 0) return showToast('Aggiungi almeno un file!');
+      const zip = new window.JSZip(), level = parseInt(document.getElementById('zip-level').value, 10);
+      zipCreatorQueue.forEach((f) => zip.file(f.name, f));
+      const blob = await zip.generateAsync({ type: 'blob', compression: level === 0 ? 'STORE' : 'DEFLATE', compressionOptions: { level: level || 6 } });
+      let name = document.getElementById('zip-out-name').value.trim() || 'archivio.zip';
+      if (!name.toLowerCase().endsWith('.zip')) name += '.zip';
+      downloadBlob(blob, name);
+    }
+    async function extractZipArchive(e) {
+      const f = e.target.files[0]; if (!f) return;
+      const zip = await window.JSZip.loadAsync(f), items = [];
+      for (const [path, entry] of Object.entries(zip.files)) {
+        if (entry.dir) continue;
+        const blob = await entry.async('blob'), url = URL.createObjectURL(blob), clean = path.split('/').pop() || path;
+        items.push(`<div class="item-card"><div>📄 <strong>${path}</strong> (${formatBytes(blob.size)})</div><a href="${url}" download="${clean}" class="btn small success" style="text-decoration:none;">⬇️ Scarica</a></div>`);
+      }
+      document.getElementById('zip-extract-list').innerHTML = items.join('') || '<p>Archivio vuoto.</p>';
+    }
+
+    // 9. UNITÀ, QR, COLORI & DEV
+    const UNIT_DEFS = {
+      length: { m: { label: 'Metri (m)', factor: 1 }, km: { label: 'Chilometri (km)', factor: 1000 }, cm: { label: 'Centimetri (cm)', factor: 0.01 }, mm: { label: 'Millimetri (mm)', factor: 0.001 }, in: { label: 'Pollici (in)', factor: 0.0254 }, ft: { label: 'Piedi (ft)', factor: 0.3048 }, mi: { label: 'Miglia (mi)', factor: 1609.344 } },
+      weight: { kg: { label: 'Chilogrammi (kg)', factor: 1 }, g: { label: 'Grammi (g)', factor: 0.001 }, mg: { label: 'Milligrammi (mg)', factor: 1e-6 }, t: { label: 'Tonnellate (t)', factor: 1000 }, lb: { label: 'Libbre (lb)', factor: 0.45359237 }, oz: { label: 'Once (oz)', factor: 0.02834952 } },
+      data: { B: { label: 'Byte (B)', factor: 1 }, KB: { label: 'Kilobyte (KB)', factor: 1e3 }, MB: { label: 'Megabyte (MB)', factor: 1e6 }, GB: { label: 'Gigabyte (GB)', factor: 1e9 }, TB: { label: 'Terabyte (TB)', factor: 1e12 }, KiB: { label: 'Kibibyte (KiB)', factor: 1024 }, MiB: { label: 'Mebibyte (MiB)', factor: 1048576 }, GiB: { label: 'Gibibyte (GiB)', factor: 1073741824 } },
+      speed: { kmh: { label: 'km/h', factor: 1 }, ms: { label: 'm/s', factor: 3.6 }, mph: { label: 'mph', factor: 1.609344 }, kn: { label: 'Nodi', factor: 1.852 } },
+      area: { m2: { label: 'm²', factor: 1 }, km2: { label: 'km²', factor: 1e6 }, ha: { label: 'Ettari', factor: 10000 }, ft2: { label: 'ft²', factor: 0.092903 }, ac: { label: 'Acri', factor: 4046.856 } },
+      volume: { l: { label: 'Litri (L)', factor: 1 }, ml: { label: 'Millilitri (mL)', factor: 0.001 }, m3: { label: 'm³', factor: 1000 }, gal: { label: 'Galloni USA', factor: 3.78541 }, floz: { label: 'fl oz USA', factor: 0.0295735 } },
+      time: { s: { label: 'Secondi', factor: 1 }, min: { label: 'Minuti', factor: 60 }, h: { label: 'Ore', factor: 3600 }, d: { label: 'Giorni', factor: 86400 }, wk: { label: 'Settimane', factor: 604800 } },
+      temp: { C: { label: 'Celsius (°C)' }, F: { label: 'Fahrenheit (°F)' }, K: { label: 'Kelvin (K)' } }
+    };
+
+    function populateUnitSelects() {
+      const cat = document.getElementById('unit-cat').value, units = UNIT_DEFS[cat], keys = Object.keys(units);
+      document.getElementById('unit-from').innerHTML = keys.map((k) => `<option value="${k}">${units[k].label}</option>`).join('');
+      document.getElementById('unit-to').innerHTML = keys.map((k, i) => `<option value="${k}" ${i === 1 ? 'selected' : ''}>${units[k].label}</option>`).join('');
+      computeUnitConversion();
+    }
+    function swapUnits() { const f = document.getElementById('unit-from'), t = document.getElementById('unit-to'), tmp = f.value; f.value = t.value; t.value = tmp; computeUnitConversion(); }
+    function computeUnitConversion() {
+      const cat = document.getElementById('unit-cat').value, val = parseFloat(document.getElementById('unit-val').value);
+      const from = document.getElementById('unit-from').value, to = document.getElementById('unit-to').value, resEl = document.getElementById('unit-res');
+      if (isNaN(val)) { resEl.value = ''; return; }
+      if (cat === 'temp') {
+        let c = from === 'F' ? (val - 32) * (5 / 9) : (from === 'K' ? val - 273.15 : val);
+        let out = to === 'F' ? c * (9 / 5) + 32 : (to === 'K' ? c + 273.15 : c);
+        resEl.value = `${Number(out.toFixed(4))} °${to}`; return;
+      }
+      resEl.value = `${Number(((val * UNIT_DEFS[cat][from].factor) / UNIT_DEFS[cat][to].factor).toPrecision(7))} ${to}`;
+    }
+
+    function generateQrCode() {
+      const text = document.getElementById('qr-text').value.trim() || 'https://github.com', wrap = document.getElementById('qr-preview');
+      if (!window.qrcode || !wrap) return;
+      const qr = window.qrcode(0, 'M'); qr.addData(unescape(encodeURIComponent(text))); qr.make();
+      wrap.innerHTML = qr.createSvgTag({ cellSize: 5, margin: 2 });
+    }
+    function downloadQrCode(fmt) {
+      const svgEl = document.querySelector('#qr-preview svg'); if (!svgEl) return;
+      const svgData = new XMLSerializer().serializeToString(svgEl);
+      if (fmt === 'svg') return downloadBlob(new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' }), 'qrcode.svg');
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 512, 512); ctx.drawImage(img, 0, 0, 512, 512);
+        c.toBlob((blob) => downloadBlob(blob, 'qrcode.png'), 'image/png');
+      };
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    }
+
+    function updateColorFromHex(hex) {
+      const clean = hex.trim().replace(/^#/, ''); if (!/^[0-9A-Fa-f]{6}$/.test(clean)) return;
+      document.getElementById('col-picker').value = '#' + clean; document.getElementById('col-hex').value = '#' + clean.toLowerCase();
+      const r = parseInt(clean.slice(0, 2), 16), g = parseInt(clean.slice(2, 4), 16), b = parseInt(clean.slice(4, 6), 16);
+      const r1 = r / 255, g1 = g / 255, b1 = b / 255, max = Math.max(r1, g1, b1), min = Math.min(r1, g1, b1);
+      let h = 0, s = 0, l = (max + min) / 2;
+      if (max !== min) {
+        const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) { case r1: h = (g1 - b1) / d + (g1 < b1 ? 6 : 0); break; case g1: h = (b1 - r1) / d + 2; break; case b1: h = (r1 - g1) / d + 4; break; }
+        h /= 6;
+      }
+      const k = 1 - max, c = k === 1 ? 0 : (1 - r1 - k) / (1 - k), m = k === 1 ? 0 : (1 - g1 - k) / (1 - k), y = k === 1 ? 0 : (1 - b1 - k) / (1 - k);
+      document.getElementById('col-rgb-hsl').value = `rgb(${r}, ${g}, ${b}) | hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+      document.getElementById('col-cmyk').value = `cmyk(${Math.round(c * 100)}%, ${Math.round(m * 100)}%, ${Math.round(y * 100)}%, ${Math.round(k * 100)}%)`;
+    }
+
+    async function runDevEncoding() {
+      const mode = document.getElementById('dev-mode').value, val = document.getElementById('dev-in').value, outEl = document.getElementById('dev-out');
+      if (!val) { outEl.value = ''; return; }
+      try {
+        if (mode === 'b64enc') outEl.value = btoa(unescape(encodeURIComponent(val)));
+        else if (mode === 'b64dec') outEl.value = decodeURIComponent(escape(atob(val)));
+        else if (mode === 'urlenc') outEl.value = encodeURIComponent(val);
+        else if (mode === 'urldec') outEl.value = decodeURIComponent(val);
+        else if (mode === 'hexenc') outEl.value = Array.from(val).map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
+        else if (mode === 'binenc') outEl.value = Array.from(val).map((c) => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
+        else if (mode === 'sha256') {
+          const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(val));
+          outEl.value = Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
+        }
+      } catch { outEl.value = 'Input non valido'; }
+    }
+
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+    async function triggerInstall() {
+      if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; }
+      else showToast('Su Chrome/Android: tocca ⋮ in alto a destra → "Installa app".');
+    }
+    if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+    window.addEventListener('DOMContentLoaded', () => { initThemeAndNetwork(); populateUnitSelects(); updateColorFromHex('#3b82f6'); generateQrCode(); });
+  </script>
 </body>
 </html>
