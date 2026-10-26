@@ -1,32 +1,19 @@
 {
-  "name": "ConverterOffline Pro — All-in-One File & Studio Converter",
+  "name": "ConverterOffline Pro — Studio Universale",
   "short_name": "ConverterOffline",
-  "description": "Convertitore Universale 100% Offline: PDF Studio, Immagini (PNG/JPG/WEBP/AVIF/ICO/SVG), Audio/Video (MP3/WAV/WEBM), Dati & Excel (CSV/JSON/XLSX/SQL/XML/YAML), Archivi ZIP, QR e Unità di Misura.",
+  "description": "Convertitore Universale 100% Offline: PDF Studio, Immagini, Audio/Video, Dati/Excel, ZIP, QR e Unità di Misura.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
-  "categories": ["utilities", "productivity", "photo"],
   "icons": [
     {
-      "src": "./icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icons/icon-maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%232563eb'/%3E%3Ccircle cx='256' cy='256' r='174' fill='%230f172a' stroke='%2393c5fd' stroke-width='14'/%3E%3Cpath d='M174 210h122v-30l56 46-56 46v-30H174z' fill='%2338bdf8'/%3E%3Cpath d='M338 302H216v30l-56-46 56-46v30h122z' fill='%2310b981'/%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
