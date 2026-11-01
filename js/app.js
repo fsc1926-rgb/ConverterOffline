@@ -1,4 +1,6 @@
-if (window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+if (window.pdfjsLib) {
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 
 const MODULES = [
   { id: 'img2pdf',   emoji: '🖼️', title: 'Foto → PDF',     cat: 'PDF Studio', color: '#3b82f6' },
@@ -12,12 +14,17 @@ const MODULES = [
   { id: 'units',     emoji: '📐', title: 'Unità & QR',     cat: 'Utility',    color: '#06b6d4' }
 ];
 
-function polarToCartesian(cx, cy, r, deg) { const rad = (deg - 90) * Math.PI / 180.0; return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }; }
+function polarToCartesian(cx, cy, r, deg) {
+  const rad = (deg - 90) * Math.PI / 180.0;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
 function buildDonut() {
   const svg = document.getElementById('donut-svg'), list = document.getElementById('module-list-container');
+  if (!svg || !list) return;
   const cx = 200, cy = 200, rIn = 95, rOut = 185, step = 360 / MODULES.length;
   let svgHtml = '', listHtml = '';
-  
+
   MODULES.forEach((mod, i) => {
     const sDeg = i * step, eDeg = (i + 1) * step, mDeg = sDeg + step / 2;
     const p1 = polarToCartesian(cx, cy, rOut, eDeg), p2 = polarToCartesian(cx, cy, rOut, sDeg);
@@ -25,11 +32,11 @@ function buildDonut() {
     const arc = step <= 180 ? '0' : '1';
     const d = `M ${p1.x} ${p1.y} A ${rOut} ${rOut} 0 ${arc} 0 ${p2.x} ${p2.y} L ${p4.x} ${p4.y} A ${rIn} ${rIn} 0 ${arc} 1 ${p3.x} ${p3.y} Z`;
     const iconPos = polarToCartesian(cx, cy, (rIn + rOut) / 2, mDeg);
-    
+
     svgHtml += `<g onclick="switchTab('${mod.id}')" onmouseenter="previewCenter('${mod.id}')" onmouseleave="restoreCenter()">
       <path id="slice-${mod.id}" class="donut-slice" d="${d}" fill="${mod.color}" />
       <text class="donut-icon" x="${iconPos.x}" y="${iconPos.y}">${mod.emoji}</text></g>`;
-      
+
     listHtml += `<div id="list-${mod.id}" class="mod-item" onclick="switchTab('${mod.id}')"><span class="mod-emj">${mod.emoji}</span><span class="mod-txt">${mod.title}</span></div>`;
   });
   svg.innerHTML = svgHtml; list.innerHTML = listHtml;
@@ -60,15 +67,31 @@ function switchTab(id) {
     const slice = document.getElementById('slice-' + m.id);
     const listItem = document.getElementById('list-' + m.id);
     if (sec) sec.hidden = (m.id !== id);
-    if (slice) slice.classList.toggle('active', m.id === id);
-    if (listItem) listItem.classList.toggle('active', m.id === id);
+    if (slice) {
+      if (m.id === id) slice.classList.add('active'); else slice.classList.remove('active');
+    }
+    if (listItem) {
+      if (m.id === id) listItem.classList.add('active'); else listItem.classList.remove('active');
+    }
   });
 }
 
 function formatBytes(b) { return b >= 1048576 ? (b/1048576).toFixed(2)+' MB' : Math.max(1, Math.round(b/1024))+' KB'; }
-function showToast(msg) { const w = document.getElementById('toast-container'); const e = document.createElement('div'); e.className='toast'; e.textContent=msg; w.appendChild(e); setTimeout(()=>e.remove(),3500); }
-function downloadBlob(blob, name) { const u = URL.createObjectURL(blob), a = document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2500); }
-function downloadPdfBytes(bytes, name) { downloadBlob(new Blob([bytes], {type:'application/pdf'}), name.endsWith('.pdf')?name:name+'.pdf'); showToast('Scaricato: '+name); }
+function showToast(msg) {
+  const w = document.getElementById('toast-container');
+  const e = document.createElement('div');
+  e.className='toast'; e.textContent=msg; w.appendChild(e);
+  setTimeout(()=>e.remove(), 3500);
+}
+function downloadBlob(blob, name) {
+  const u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u), 2500);
+}
+function downloadPdfBytes(bytes, name) {
+  downloadBlob(new Blob([bytes], {type:'application/pdf'}), name.endsWith('.pdf')?name:name+'.pdf');
+  showToast('Scaricato: '+name);
+}
 
 function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('dragover'); }
 function handleDragLeave(e) { e.currentTarget.classList.remove('dragover'); }
@@ -79,18 +102,27 @@ function initUI() {
   buildDonut();
   const theme = localStorage.getItem('co_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', theme);
-  const tBtn = document.getElementById('theme-btn'); if(tBtn) tBtn.innerHTML = theme === 'dark' ? '☀️ <span class="hide-mobile">Chiaro</span>' : '🌙 <span class="hide-mobile">Scuro</span>';
+  const tBtn = document.getElementById('theme-btn');
+  if(tBtn) tBtn.innerHTML = theme === 'dark' ? '☀️ <span class="hide-mobile">Chiaro</span>' : '🌙 <span class="hide-mobile">Scuro</span>';
   const nd = document.getElementById('net-dot');
-  if(nd) { nd.className = navigator.onLine ? 'status-dot online' : 'status-dot offline'; }
+  if(nd) nd.className = navigator.onLine ? 'status-dot online' : 'status-dot offline';
   renderHistory();
 }
-function toggleTheme() { const n = document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'; localStorage.setItem('co_theme',n); initUI(); }
+function toggleTheme() {
+  const n = document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  localStorage.setItem('co_theme',n); initUI();
+}
 window.addEventListener('online', initUI); window.addEventListener('offline', initUI);
 window.addEventListener('DOMContentLoaded', initUI);
 
 // History
 function getHist() { try { return JSON.parse(localStorage.getItem('co_hist')||'[]'); } catch { return []; } }
-function addHist(cat, name, size) { const l = getHist(); l.unshift({cat, name, size:formatBytes(size), d:new Date().toLocaleString()}); localStorage.setItem('co_hist', JSON.stringify(l.slice(0,20))); renderHistory(); }
+function addHist(cat, name, size) {
+  const l = getHist();
+  l.unshift({cat, name, size:formatBytes(size), d:new Date().toLocaleString()});
+  localStorage.setItem('co_hist', JSON.stringify(l.slice(0,20)));
+  renderHistory();
+}
 function renderHistory() { const c = document.getElementById('hist-count'); if(c) c.textContent = getHist().length; }
 function toggleHistoryModal() {
   const m = document.getElementById('history-modal'); m.hidden = !m.hidden;
@@ -104,7 +136,10 @@ function clearHistory() { localStorage.removeItem('co_hist'); toggleHistoryModal
 // 1. IMG2PDF
 let imgQ = []; let uid = 1;
 function addImages(e) { addImagesFromFiles(e.target.files); e.target.value=''; }
-function addImagesFromFiles(fs) { Array.from(fs).forEach(f => { if(f.type.startsWith('image/')) imgQ.push({id:uid++, f, u:URL.createObjectURL(f), s:f.size}); }); renderImgQ(); }
+function addImagesFromFiles(fs) {
+  Array.from(fs).forEach(f => { if(f.type.startsWith('image/')) imgQ.push({id:uid++, f, u:URL.createObjectURL(f), s:f.size}); });
+  renderImgQ();
+}
 function renderImgQ() {
   document.getElementById('img-thumbs').innerHTML = imgQ.map((i, idx) => `<div class="thumb-box"><img src="${i.u}"/><div class="text-xs mb-2">Pag. ${idx+1}</div>
   <div class="flex-row gap-1"><button class="btn secondary flex-1 p-1" onclick="mvImg(${idx},-1)">◀</button><button class="btn danger flex-1 p-1" onclick="rmImg(${i.id})">✕</button><button class="btn secondary flex-1 p-1" onclick="mvImg(${idx},1)">▶</button></div></div>`).join('');
@@ -178,10 +213,11 @@ async function convertPdfToImagesOrText() {
   w.innerHTML = '<span class="text-accent">Elaborazione...</span>'; pdfImgs = [];
   const p = await window.pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
   if(fmt.startsWith('txt')) {
-    let t = ''; for(let i=1;i<=p.numPages;i++) { const c = await (await p.getPage(i)).getTextContent(); t += `--- PAG ${i} ---
-` + c.items.map(x=>x.str).join(' ') + '
-
-'; }
+    let t = '';
+    for(let i=1;i<=p.numPages;i++) {
+      const c = await (await p.getPage(i)).getTextContent();
+      t += '--- PAG ' + i + ' ---\n' + c.items.map(x=>x.str).join(' ') + '\n\n';
+    }
     downloadBlob(new Blob([t]), f.name+'.txt'); w.innerHTML = 'Testo estratto!'; return;
   }
   const ext = fmt.split('/')[1]==='jpeg'?'jpg':'png'; w.innerHTML = '';
@@ -268,7 +304,7 @@ async function convertAudioTrack() {
     const sS=Math.min(ts,dec.duration), eS=(te>sS&&te<=dec.duration)?te:dec.duration, dr=Math.max(0.1,eS-sS);
     const octx=new OfflineAudioContext(2, Math.ceil(dr*tr), tr), src=octx.createBufferSource(); src.buffer=dec; src.connect(octx.destination); src.start(0,sS,dr);
     const ren=await octx.startRendering(), bn=currentAudioFile.name.replace(/\.[^/.]+$/,''); let ob, on;
-    if(of.startsWith('mp3')) { /* LameJS stub for space, wav direct fallback if large */ ob=encodeWav(ren); on=`${bn}.wav`; showToast('MP3 simulato con WAV (limite script)'); }
+    if(of.startsWith('mp3')) { ob=encodeWav(ren); on=`${bn}.wav`; showToast('MP3 simulato con WAV (limite script)'); }
     else { const bit=of==='wav-24'?24:16; ob=encodeWav(ren,bit); on=`${bn}-${bit}b.wav`; }
     document.getElementById('audio-progress-bar').style.width='100%'; downloadBlob(ob,on); addHist('Audio', on, ob.size);
   } catch(e) { showToast('Errore: '+e.message); }
@@ -290,7 +326,10 @@ function convertDataFormats() {
     let r=[]; if(inf==='json'||(inf==='auto'&&i.startsWith('['))) r=JSON.parse(i); else if(window.XLSX) { const w=window.XLSX.read(i,{type:'string'}); r=window.XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]]); }
     if(!r.length) return;
     if(outf==='xlsx'&&window.XLSX) { const w=window.XLSX.utils.book_new(); window.XLSX.utils.book_append_sheet(w,window.XLSX.utils.json_to_sheet(r),'Dati'); downloadBlob(new Blob([window.XLSX.write(w,{type:'array',bookType:'xlsx'})]),'dati.xlsx'); return showToast('XLSX Scaricato'); }
-    let o=''; if(outf==='json') o=JSON.stringify(r,null,2); else if(outf==='csv') { const ks=Object.keys(r[0]); o=ks.join(',')+'\n'+r.map(x=>ks.map(k=>`"${x[k]||''}"`).join(',')).join('\n'); } else if(outf==='sql') { const ks=Object.keys(r[0]); o=r.map(x=>`INSERT INTO t (${ks.join(',')}) VALUES (${ks.map(k=>`'${x[k]||''}'`).join(',')});`).join('\n'); }
+    let o=''; 
+    if(outf==='json') o=JSON.stringify(r,null,2); 
+    else if(outf==='csv') { const ks=Object.keys(r[0]); o=ks.join(',')+'\n'+r.map(x=>ks.map(k=>`"${x[k]||''}"`).join(',')).join('\n'); } 
+    else if(outf==='sql') { const ks=Object.keys(r[0]); o=r.map(x=>`INSERT INTO t (${ks.join(',')}) VALUES (${ks.map(k=>`'${x[k]||''}'`).join(',')});`).join('\n'); }
     document.getElementById('data-output-text').value = o || 'Formato testo base...'; showToast('Convertito');
   } catch(e) { showToast('Errore parse'); }
 }
