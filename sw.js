@@ -1,78 +1,55 @@
-const CACHE_NAME = 'conv-offline-v5-pro';
+const CACHE_NAME = 'conv-offline-github-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './css/style.css',
   './js/app.js',
+  './js/worker-audio.js',
   './manifest.webmanifest',
-  './icons/favicon.png',
-  './icons/apple-touch-icon.png',
   './icons/icon-192.png',
-  './icons/icon-512.png'
-  // IMPORTANTE: Se decidi di scaricare in locale le librerie CDN, aggiungi i percorsi qui.
-  // Es: './js/vendor/pdf-lib.min.js'
+  './icons/icon-512.png',
+  // Salviamo direttamente le CDN così non devi scaricarle a mano!
+  'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+  'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js',
+  'https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js',
+  'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js',
+  'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/heic2any.min.js',
+  'https://cdn.jsdelivr.net/npm/turndown@7.1.3/dist/turndown.js',
+  'https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js'
 ];
 
-// Installazione: pre-caching delle risorse essenziali
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('[Service Worker] Caching risorse offline');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
 });
 
-// Attivazione: pulizia delle vecchie cache
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
-            .map(key => caches.delete(key))
-      );
-    })
+    caches.keys().then(keys => Promise.all(
+      keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+    ))
   );
   self.clients.claim();
 });
 
-// Fetch: Network First per i CDN, Cache First per i file locali
 self.addEventListener('fetch', event => {
-  const requestUrl = new URL(event.request.url);
-
-  // Se la richiesta è verso un CDN esterno (es. jsdelivr, cdnjs)
-  if (requestUrl.origin !== location.origin) {
-    event.respondWith(
-      caches.match(event.request).then(cachedResponse => {
-        return cachedResponse || fetch(event.request).then(networkResponse => {
-          return caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, networkResponse.clone());
-            return networkResponse;
-          });
-        }).catch(() => {
-          console.warn('[Service Worker] Fetch fallito per risorsa esterna (Offline).');
-        });
-      })
-    );
-    return;
-  }
-
-  // Risorse Locali (Stale-while-revalidate pattern)
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) return cachedResponse;
-      return fetch(event.request).then(response => {
+      // Ritorna la cache se c'è, altrimenti prova la rete
+      return cachedResponse || fetch(event.request).then(response => {
         return caches.open(CACHE_NAME).then(cache => {
           cache.put(event.request, response.clone());
           return response;
         });
       });
-    }).catch(() => {
-      // Fallback in caso di assenza totale di rete e cache miss
-      if (event.request.mode === 'navigate') {
-        return caches.match('./index.html');
-      }
     })
   );
 });
