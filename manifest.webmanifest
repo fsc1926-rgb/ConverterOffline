@@ -1,16 +1,28 @@
 {
-  "name": "ConverterOffline Pro Ultimate",
+  "name": "ConverterOffline Pro v5.0",
   "short_name": "ConvOffline",
-  "description": "Convertitore Universale 100% Offline con Interfaccia Radiale Next-Gen.",
+  "description": "L'hub definitivo per la conversione di file 100% offline lato client.",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "orientation": "any",
   "background_color": "#050505",
-  "theme_color": "#3b82f6",
+  "theme_color": "#050505",
+  "orientation": "portrait-primary",
   "icons": [
-    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
