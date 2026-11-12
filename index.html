@@ -2,7 +2,8 @@
 <html lang="it" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- Viewport corretto per accessibilità (zoom sbloccato) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#050505" />
   <title>ConverterOffline Pro v5.0 — Ultimate</title>
   <link rel="manifest" href="./manifest.webmanifest" />
@@ -10,7 +11,7 @@
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <link rel="stylesheet" href="./css/style.css" />
 
-  <!-- LIBRARIES -->
+  <!-- LIBRARIES (Ideale: scaricarle in /js/vendor/ per vero offline) -->
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -18,6 +19,11 @@
   <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  
+  <!-- NUOVE LIBRERIE PER COMPLETENZA FUNZIONALE -->
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/heic2any.min.js"></script> <!-- Per decodifica HEIC Apple -->
+  <script src="https://cdn.jsdelivr.net/npm/turndown@7.1.3/dist/turndown.js"></script> <!-- Per HTML -> MD -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script> <!-- Sicurezza Markdown -->
 </head>
 <body>
   <!-- AURORA BACKGROUND -->
@@ -43,7 +49,8 @@
     <!-- LEFT: NEON DONUT DOCK -->
     <aside class="sidebar glass-panel">
       <div class="donut-container">
-        <svg id="donut-svg" viewBox="0 0 400 400"></svg>
+        <!-- Aggiunta accessibilità da tastiera per i path SVG -->
+        <svg id="donut-svg" viewBox="0 0 400 400" tabindex="0" role="menu" aria-label="Menu Strumenti"></svg>
         <div class="donut-core" id="donut-hole">
           <div class="core-icon" id="hole-emoji">⚡</div>
           <div class="core-title" id="hole-title">Seleziona</div>
@@ -64,7 +71,7 @@
           <h2>Benvenuto in ConverterOffline v5</h2>
           <p>Seleziona uno spicchio dalla ciambella a sinistra per iniziare.</p>
           <div class="stats-grid">
-            <div class="stat-box"><span class="val">9</span><span class="lbl">Moduli Pro</span></div>
+            <div class="stat-box"><span class="val">8</span><span class="lbl">Moduli Pro</span></div>
             <div class="stat-box"><span class="val">100%</span><span class="lbl">Offline</span></div>
             <div class="stat-box"><span class="val">0</span><span class="lbl">Server usati</span></div>
           </div>
@@ -82,14 +89,18 @@
             <div class="dropzone" onclick="document.getElementById('img-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, addImagesFromFiles)">
               <div class="dz-icon">📸</div>
               <strong>Trascina le foto qui o clicca</strong>
-              <span>JPG, PNG, WEBP, HEIC</span>
+              <span>JPG, PNG, WEBP, HEIC (Supportato nativamente)</span>
             </div>
-            <input type="file" id="img-input" accept="image/*" multiple onchange="addImages(event)" hidden />
+            <input type="file" id="img-input" accept="image/*,.heic" multiple onchange="addImages(event)" hidden />
             <div id="img-thumbs" class="thumb-scroller"></div>
           </div>
           <div class="bento-card">
             <label>Formato Pagina</label>
-            <select class="glass-input" id="img-pagesize"><option value="a4-p">A4 Verticale</option><option value="fit">Adatta a Foto</option></select>
+            <select class="glass-input" id="img-pagesize">
+              <option value="a4-p">A4 Verticale</option>
+              <option value="a4-l">A4 Orizzontale</option>
+              <option value="fit">Adatta a Foto</option>
+            </select>
             <label>Qualità</label>
             <select class="glass-input" id="img-quality"><option value="0.92">Alta</option><option value="0.72" selected>Media</option></select>
             <label>Filtro</label>
@@ -127,7 +138,13 @@
             <input class="glass-input" type="file" id="split-input" accept=".pdf" onchange="inspectPdfForSplit(event)" />
             <div id="split-info" class="text-xs text-accent mt-1 mb-2"></div>
             <label>Pagine (es. 1, 3-5)</label><input class="glass-input" type="text" id="split-pages" />
-            <label>Rotazione</label><select class="glass-input" id="split-rot"><option value="0">0°</option><option value="90">90°</option></select>
+            <label>Rotazione</label>
+            <select class="glass-input" id="split-rot">
+              <option value="0">0°</option>
+              <option value="90">90° (Orario)</option>
+              <option value="180">180° (Sottosopra)</option>
+              <option value="270">270° (Antiorario)</option>
+            </select>
             <label>Nome Output</label><input class="glass-input" type="text" id="split-out-name" value="estratto.pdf" />
             <button class="action-btn w-full mt-3" onclick="processSplitRotate()">Elabora PDF</button>
           </div>
@@ -146,34 +163,6 @@
         </div>
       </section>
 
-      <!-- SEC-SIGN -->
-      <section id="sec-sign" class="glass-panel" hidden>
-        <div class="panel-header">
-          <div class="ph-icon">✍️</div>
-          <div><h2>Firma & Timbra PDF</h2><p>Firma autografa, filigrana e timbri PNG.</p></div>
-        </div>
-        <div class="bento-grid">
-          <div class="bento-card col-span-2 flex-row align-end">
-            <div class="flex-1"><label>PDF da firmare</label><input class="glass-input" type="file" id="sign-pdf-input" accept=".pdf" /></div>
-            <div class="flex-1"><label>Testo opzionale</label><input class="glass-input" type="text" id="sign-text" placeholder="Es. Firmato il..." /></div>
-            <div class="w-32"><label>Colore</label><select class="glass-input" id="sign-color" onchange="updateSignatureColor()"><option value="#1d4ed8">Blu</option><option value="#0f172a">Nero</option></select></div>
-          </div>
-          <div class="bento-card col-span-2 text-center">
-            <canvas id="sig-pad" class="sig-canvas" width="600" height="180"></canvas>
-            <div class="flex-row justify-center mt-2">
-              <button class="action-btn outline-btn small-btn" onclick="clearSignaturePad()">🧹 Cancella Firma</button>
-              <label class="action-btn outline-btn small-btn cursor-pointer">🖼️ Carica Timbro PNG<input type="file" accept="image/*" onchange="loadStampIntoCanvas(event)" hidden /></label>
-            </div>
-          </div>
-          <div class="bento-card col-span-2 flex-row align-end">
-            <div class="flex-1"><label>Pagina</label><select class="glass-input" id="sign-page-pos"><option value="last">Ultima</option><option value="all">Tutte</option></select></div>
-            <div class="flex-1"><label>Posizione</label><select class="glass-input" id="sign-corner"><option value="br">Basso Destra</option><option value="bc">Centro</option></select></div>
-            <div class="flex-1"><label>Filigrana Diagonale</label><input class="glass-input" type="text" id="sign-watermark" placeholder="Es. COPIA" /></div>
-            <button class="action-btn success-btn" onclick="signPdfDocument()">✍️ Applica Firma</button>
-          </div>
-        </div>
-      </section>
-
       <!-- SEC-IMGCONV -->
       <section id="sec-imgconv" class="glass-panel" hidden>
         <div class="panel-header">
@@ -186,13 +175,29 @@
               <div class="dz-icon">🖼️</div>
               <strong>Trascina Immagini (Conversione Batch)</strong>
             </div>
-            <input type="file" id="conv-img-input" accept="image/*" multiple onchange="addBatchImages(event.target.files)" hidden />
+            <input type="file" id="conv-img-input" accept="image/*,.heic" multiple onchange="addBatchImages(event.target.files)" hidden />
             <div id="conv-img-list" class="mini-list mt-3"></div>
           </div>
           <div class="bento-card flex-row align-end col-span-2">
-            <div class="flex-1"><label>Output Format</label><select class="glass-input" id="conv-img-format"><option value="webp">WEBP</option><option value="png">PNG</option><option value="jpeg">JPG</option><option value="avif">AVIF</option><option value="ico">ICO 64px</option><option value="bmp">BMP 24bit</option><option value="svg">SVG Wrap</option><option value="base64">Base64 Text</option></select></div>
-            <div class="flex-1"><label>Qualità: <span id="conv-q-val">85</span>%</label><input class="range-slider" type="range" id="conv-img-quality" min="10" max="100" value="85" oninput="document.getElementById('conv-q-val').textContent=this.value" /></div>
-            <div class="flex-1"><label>Max Width (px)</label><input class="glass-input" type="number" id="conv-img-maxw" placeholder="Vuoto = 100%" /></div>
+            <div class="flex-1">
+              <label>Output Format</label>
+              <select class="glass-input" id="conv-img-format">
+                <option value="webp">WEBP</option>
+                <option value="png">PNG</option>
+                <option value="jpeg">JPG</option>
+                <option value="avif">AVIF</option>
+                <option value="ico">ICO 64px</option>
+                <option value="bmp">BMP 24bit</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label>Qualità: <span id="conv-q-val">85</span>%</label>
+              <input class="range-slider" type="range" id="conv-img-quality" min="10" max="100" value="85" oninput="document.getElementById('conv-q-val').textContent=this.value" />
+            </div>
+            <div class="flex-1">
+              <label>Max Width (px)</label>
+              <input class="glass-input" type="number" id="conv-img-maxw" placeholder="Vuoto = 100%" />
+            </div>
           </div>
           <div class="bento-card col-span-2 flex-row justify-end">
             <button class="action-btn danger-btn mr-auto" onclick="clearBatchImages()">🗑️ Svuota</button>
@@ -233,7 +238,7 @@
               <div class="flex-row mt-3 align-center">
                 <select class="glass-input w-40" id="video-frame-fmt"><option value="image/png">Frame PNG</option><option value="image/jpeg">Frame JPG</option></select>
                 <button class="action-btn outline-btn" onclick="captureVideoFrame()">📸 Cattura Frame</button>
-                <button class="action-btn outline-btn ml-auto" onclick="recordVideoToWebm()">🎥 Rec 5s (WebM)</button>
+                <button class="action-btn outline-btn ml-auto" id="btn-record-video" onclick="toggleVideoRecording()">🎥 Start Rec (WebM)</button>
               </div>
             </div>
           </div>
@@ -249,8 +254,26 @@
         <div class="bento-grid">
           <div class="bento-card col-span-2 flex-row align-end">
             <div class="flex-2"><label>Carica File</label><input class="glass-input" type="file" id="data-file-input" onchange="loadDataFile(event)" /></div>
-            <div class="flex-1"><label>Input Formato</label><select class="glass-input" id="data-in-fmt"><option value="auto">Auto</option><option value="json">JSON</option><option value="csv">CSV</option></select></div>
-            <div class="flex-1"><label>Output Formato</label><select class="glass-input" id="data-out-fmt"><option value="csv">CSV</option><option value="json">JSON</option><option value="xlsx">Excel .xlsx</option><option value="sql">SQL Insert</option><option value="md">Markdown</option></select></div>
+            <div class="flex-1">
+              <label>Input Formato</label>
+              <select class="glass-input" id="data-in-fmt">
+                <option value="auto">Auto</option>
+                <option value="json">JSON</option>
+                <option value="csv">CSV</option>
+                <option value="xml">XML</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label>Output Formato</label>
+              <select class="glass-input" id="data-out-fmt">
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+                <option value="xml">XML</option>
+                <option value="xlsx">Excel .xlsx</option>
+                <option value="sql">SQL Insert</option>
+                <option value="md">Markdown</option>
+              </select>
+            </div>
           </div>
           <div class="bento-card"><label>Input Data</label><textarea class="glass-input code-font" id="data-input-text" placeholder="Incolla array JSON o CSV qui..."></textarea></div>
           <div class="bento-card"><label>Output Data</label><textarea class="glass-input code-font" id="data-output-text" readonly></textarea></div>
@@ -370,6 +393,53 @@ Scrivi qui..."></textarea></div>
 
   <div id="toast-container" class="toast-container"></div>
 
+  <!-- MAIN JS APP E SCRIPT PWA -->
   <script src="./js/app.js"></script>
+  <script>
+    // 1. Registrazione Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker registrato:', reg.scope))
+          .catch(err => console.error('Errore SW:', err));
+      });
+    }
+
+    // 2. Gestione Stato Rete (Aggiorna il pallino UI)
+    const netDot = document.getElementById('net-dot');
+    function updateNetworkStatus() {
+      if (navigator.onLine) {
+        netDot.classList.replace('offline', 'online');
+        netDot.title = "Online / Offline Ready";
+      } else {
+        netDot.classList.replace('online', 'offline');
+        netDot.title = "Modalità 100% Offline Attiva";
+      }
+    }
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+    updateNetworkStatus();
+
+    // 3. Gestione Installazione PWA
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    function triggerInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('App installata');
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        alert("L'app è già installata o il browser non supporta l'installazione nativa (es. iOS Safari: usa 'Aggiungi alla Home').");
+      }
+    }
+  </script>
 </body>
 </html>
