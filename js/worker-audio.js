@@ -1,6 +1,5 @@
 // js/worker-audio.js
 
-// Nota: quando avrai i file in locale, cambia questo percorso in '../js/vendor/lame.min.js'
 importScripts('https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js');
 
 self.onmessage = function(e) {
