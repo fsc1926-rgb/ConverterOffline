@@ -366,3 +366,110 @@ function downloadQrCode(fmt) { const s=document.querySelector('#qr-preview svg')
 function updateColorFromHex(h) { document.getElementById('col-picker').value=h; document.getElementById('col-hex').value=h; document.getElementById('col-rgb-hsl').value = 'RGB / HSL sync logic'; }
 async function runDevEncoding() { const m=document.getElementById('dev-mode').value, i=document.getElementById('dev-in').value, o=document.getElementById('dev-out'); if(!i) return; try { if(m==='b64enc') o.value=btoa(i); else if(m==='b64dec') o.value=atob(i); else if(m==='sha256') { const h=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(i)); o.value=Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join(''); } } catch { o.value='Err'; } }
 async function triggerInstall() { showToast('Su Chrome/Android: tocca ⋮ in alto a destra → "Installa app".'); }
+
+// js/app.js (Aggiungi o sostituisci queste logiche al tuo file esistente)
+
+// ==========================================
+// 1. GESTIONE MEMORIA (Evita crash su mobile)
+// ==========================================
+let activeObjectUrls = [];
+
+function trackUrl(url) {
+    activeObjectUrls.push(url);
+    return url;
+}
+
+function clearMemory() {
+    activeObjectUrls.forEach(url => URL.revokeObjectURL(url));
+    activeObjectUrls = [];
+}
+
+// Chiamala ogni volta che svuoti una lista. Esempio:
+function clearImages() {
+    document.getElementById('img-thumbs').innerHTML = '';
+    clearMemory(); 
+}
+
+// ==========================================
+// 2. SUPPORTO HEIC TRASPARENTE
+// ==========================================
+async function processInputFile(file) {
+    // Se è un HEIC, lo convertiamo silenziosamente in JPEG prima di passarlo all'app
+    if (file.name.toLowerCase().endsWith('.heic')) {
+        try {
+            console.log("Conversione HEIC in corso...");
+            const convertedBlob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.8 });
+            return new File([convertedBlob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
+        } catch (e) {
+            console.error("Errore decodifica HEIC:", e);
+            return file; // Ritorna l'originale in caso di errore
+        }
+    }
+    return file;
+}
+
+// Esempio d'uso nell'input:
+async function addImages(event) {
+    const files = event.target.files;
+    for (let f of files) {
+        const processedFile = await processInputFile(f);
+        // Da qui usi processedFile per creare l'anteprima o il PDF...
+    }
+}
+
+// ==========================================
+// 3. CONVERSIONE AUDIO CON WEB WORKER
+// ==========================================
+function convertAudioTrack() {
+    const progressBar = document.getElementById('audio-progress-bar');
+    const progressWrap = document.getElementById('audio-progress-wrap');
+    progressWrap.hidden = false;
+    progressBar.style.width = '0%';
+
+    // Ipotizziamo di aver già estratto i dati PCM (wavData) tramite AudioContext
+    // Costruiamo il Worker
+    const worker = new Worker('./js/worker-audio.js');
+    
+    worker.onmessage = function(e) {
+        if (e.data.type === 'progress') {
+            progressBar.style.width = e.data.value + '%';
+        } else if (e.data.type === 'done') {
+            progressBar.style.width = '100%';
+            
+            const mp3Url = trackUrl(URL.createObjectURL(e.data.blob));
+            document.getElementById('audio-output-box').innerHTML = `
+                <a href="${mp3Url}" download="convertito.mp3" class="action-btn success-btn w-full text-center">
+                    ⬇️ Scarica MP3
+                </a>
+            `;
+            worker.terminate(); // Uccidi il worker a lavoro finito
+        }
+    };
+
+    // Avvia il lavoro in background
+    worker.postMessage({
+        wavData: /* i tuoi dati int16Array estratto dal file */ null, 
+        sampleRate: 44100,
+        kbps: 192
+    });
+}
+
+// ==========================================
+// 4. DOCS: MARKDOWN A HTML E VICEVERSA
+// ==========================================
+function convertDocument() {
+    const mode = document.getElementById('doc-conv-mode').value;
+    const input = document.getElementById('doc-input').value;
+    const outputArea = document.getElementById('doc-output');
+
+    if (mode === 'md2html') {
+        // Usa marked + DOMPurify per sicurezza XSS
+        const rawHtml = marked.parse(input);
+        outputArea.value = DOMPurify.sanitize(rawHtml);
+    } 
+    else if (mode === 'html2md') {
+        // Usa Turndown per convertire l'HTML in Markdown pulito
+        const turndownService = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+        outputArea.value = turndownService.turndown(input);
+    }
+}
